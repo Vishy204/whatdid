@@ -6,6 +6,7 @@ How a new version of what did goes out. The version lives in three files and mus
 
 - Bump `version` in `package.json`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
 - Add a section to `CHANGELOG.md`.
+- Keep README images and links relative (`assets/hero.gif`). GitHub renders them even while the repo is private, and npmjs.com resolves them against the `repository` in `package.json`, so they show on npm once the repo is public.
 - If the output changed, regenerate the README media: `python assets/src/make_gifs.py`, and re-shoot `assets/report.png` from `wd html` on the demo session.
 
 ## 2. Check
