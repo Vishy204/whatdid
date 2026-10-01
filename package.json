@@ -25,6 +25,7 @@
   },
   "scripts": {
     "test": "node test/run.mjs",
+    "prepublishOnly": "node test/run.mjs",
     "bench": "node bench/run.mjs",
     "bench:dry": "node bench/run.mjs --dry-run",
     "demo": "node demo/play.mjs"

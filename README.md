@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
-    <img alt="what did" src="assets/banner-light.svg" width="640">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Vishy204/whatdid/main/assets/banner-dark.svg">
+    <img alt="what did" src="https://raw.githubusercontent.com/Vishy204/whatdid/main/assets/banner-light.svg" width="640">
   </picture>
 </p>
 
@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://github.com/Vishy204/whatdid/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Vishy204/whatdid/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-35e0c5"></a>
+  <a href="https://github.com/Vishy204/whatdid/blob/main/LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-35e0c5"></a>
   <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-35e0c5">
   <img alt="node 20+" src="https://img.shields.io/badge/node-20%2B-9d8cff">
   <img alt="Windows, macOS, Linux" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-supported-5ad07a">
@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/hero.gif" alt="Claude narrates its work with typed notes, a one-line card appears when it finishes, then typing wd shows the full map of what it did" width="820">
+  <img src="https://raw.githubusercontent.com/Vishy204/whatdid/main/assets/hero.gif" alt="Claude narrates its work with typed notes, a one-line card appears when it finishes, then typing wd shows the full map of what it did" width="820">
 </p>
 
 Claude Code's terminal is a firehose of `Read`, `Grep`, `Edit` and diffs. Most people can't follow it, so they paste it into another AI and ask what just happened.
@@ -139,7 +139,7 @@ In Windows Terminal, tmux, WezTerm and iTerm2, `wd` opens in a full-width pane b
 - **Live statusline:** `/whatdid:setup` adds a line at the bottom of the terminal showing Claude's latest note as it works (`◇ found expiresAt is seconds… · step 6 · editing session.ts`). If you already have a statusline, such as GSD's, it stays and shows first.
 - **HTML report:** `wd html` writes one self-contained page: health, a flowchart of every step and file, the changed lines, the file tree and every note as a coloured badge. It runs no JavaScript and loads nothing from the network, so it works offline.
 
-  <img src="assets/report.png" alt="what did HTML report with a flowchart of the steps" width="640">
+  <img src="https://raw.githubusercontent.com/Vishy204/whatdid/main/assets/report.png" alt="what did HTML report with a flowchart of the steps" width="640">
 
 - **Outside Claude Code:** run `whatdid` in any project folder to see its latest session, in colour. `whatdid replay`, `whatdid doctor` and `whatdid map` also work.
 - **A folder of many projects:** `wd map` in, say, your home folder lists the projects there instead of mixing them into one map.
@@ -172,7 +172,7 @@ Turn on the output style with `/output-style whatdid`. Claude then writes short,
 
 The recap is ✎ **changed**, ✔ **verified** and ○ **left**. It flips to ✘ or ▲ when something wasn't checked or is still open, so problems stand out.
 
-<p align="center"><img src="assets/replay.gif" alt="wd replay: every tool call with timings, grouped under Claude's why and found notes" width="760"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/Vishy204/whatdid/main/assets/replay.gif" alt="wd replay: every tool call with timings, grouped under Claude's why and found notes" width="760"></p>
 
 ## How it compares
 
@@ -236,7 +236,7 @@ Claude Code caches the start of a session, so the fixed costs above are billed i
 | [hugo](https://github.com/gohugoio/hugo) | Go | ~1.6M tokens | 8/8 | 0% |
 | [pydantic](https://github.com/pydantic/pydantic) | Python + Rust | ~1.9M tokens | 8/8 | +24% |
 
-The biggest win was on the private codebase. Our guess is that Claude already knows its way around famous public repos, so a map helps less there. Per-question numbers are in [`bench/results`](bench/results).
+The biggest win was on the private codebase. Our guess is that Claude already knows its way around famous public repos, so a map helps less there. Per-question numbers are in [`bench/results`](https://github.com/Vishy204/whatdid/tree/main/bench/results).
 
 **Turn it on:**
 
@@ -267,7 +267,7 @@ Yes. what did only observes. It keeps any statusline you already have, and its n
 
 <details><summary><b>Where is my data, and how do I remove it?</b></summary>
 
-It's in `~/.whatdid/`, private to you, with common secrets redacted before anything is written ([SECURITY.md](SECURITY.md)). Delete that folder to remove it. `whatdid uninstall` removes the plugin and restores your previous statusline.
+It's in `~/.whatdid/`, private to you, with common secrets redacted before anything is written ([SECURITY.md](https://github.com/Vishy204/whatdid/blob/main/SECURITY.md)). Delete that folder to remove it. `whatdid uninstall` removes the plugin and restores your previous statusline.
 </details>
 
 ## Roadmap

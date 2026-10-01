@@ -27,7 +27,7 @@ Open Claude Code in a real project and give it a real task, e.g. "find where X i
 - [ ] `wd replay`, `wd 3`, `wd all`, `wd help`.
 - [ ] `wd diff`: the exact lines Claude changed, with line numbers. Compare with `git diff`.
 - [ ] The **Health** section: after a task with a failing then passing test run, it says tests passed and the failure was fixed later.
-- [ ] Type `/wd`: the menu lists `/whatdid:wd`, `wd-replay`, `wd-map`, `wd-html`, `wd-help` with descriptions. Each one opens without using tokens.
+- [ ] Type `/wd`: the menu lists `/whatdid:wd`, `wd-replay`, `wd-diff`, `wd-map`, `wd-html`, `wd-help` with descriptions. Each one opens without using tokens.
 - [ ] In the colour pane, click a "+3 more" line (or press `e`): everything expands. `q` closes it.
 - [ ] `wd html`: a report opens in the browser with a flowchart.
 - [ ] `wd map`: the repo map. Spot-check a few line numbers in a big file.
