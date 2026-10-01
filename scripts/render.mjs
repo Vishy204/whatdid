@@ -97,8 +97,8 @@ export function describeStep(step, S = UNICODE, full = false) {
       // One command per line, in plain words when Claude described it. The raw command only shows when it
       // failed (you will want to see it then) or when there is no description.
       const out = items.slice(0, cap).map((i) => {
-        if (!i.why) return `${i.ok === false ? S.fail : S.ok} ${clip(i.detail, 70)}`;
-        return i.ok === false ? `${S.fail} ${i.why}: ${clip(i.detail, 50)}` : `${S.ok} ${i.why}`;
+        if (!i.why) return `${i.ok === false ? S.fail : S.ok} ${full ? i.detail : clip(i.detail, 70)}`;
+        return i.ok === false ? `${S.fail} ${i.why}: ${full ? i.detail : clip(i.detail, 50)}` : `${S.ok} ${i.why}`;
       });
       if (items.length > cap) out.push(`+${items.length - cap} more commands`);
       return out;
@@ -665,7 +665,15 @@ export function healthOf(turn) {
   const tests = runs.filter(isTestCommand);
   const failed = t.filter((e) => e.ok === false);
   const unresolved = failed.filter((f) => !t.slice(t.indexOf(f) + 1).some((e) => e.ok !== false && key(e) === key(f)));
-  const changed = [...touchedFiles(t)].filter(([, f]) => f.marks.has('E') || f.marks.has('N'));
+  // Every file Claude edited or created, inside the project or not, so it agrees with "In short".
+  const byFile = new Map();
+  for (const e of t) {
+    if ((e.kind !== 'edit' && e.kind !== 'write') || !e.target || e.ok === false) continue;
+    const f = byFile.get(e.target) || { add: 0, del: 0 };
+    f.add += e.add || 0; f.del += e.del || 0;
+    byFile.set(e.target, f);
+  }
+  const changed = [...byFile];
   return {
     tests: tests.length ? { runs: tests.length, passed: tests[tests.length - 1].ok !== false, last: tests[tests.length - 1] } : null,
     commands: runs.length,

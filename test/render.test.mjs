@@ -173,9 +173,9 @@ test('html report is self-contained, escaped, and has light/dark themes', () => 
   assert.ok(!/<script|https?:\/\//i.test(html.replace(/https:\/\/github\.com[^"<]*/g, '')), 'no scripts and nothing loaded from the network');
   assert.match(html, /prefers-color-scheme: dark/);
   assert.match(html, /name="viewport"/);
-  assert.match(html, /<blockquote>fix the &quot;login&quot; &lt;redirect&gt;<\/blockquote>/);
+  assert.match(html, /<p class="ask">fix the &quot;login&quot; &lt;redirect&gt;<\/p>/);
   assert.ok(!html.includes('<redirect>'));
-  assert.equal((html.match(/<section class="turn"/g) || []).length, 1);
+  assert.equal((html.match(/<section class="turn" id=/g) || []).length, 1);
   assert.match(html, /Recap/);
   const out = writeReport(path.join(TMP, 'sessions', 'abc.jsonl'), events, {});
   assert.equal(out, path.join(TMP, 'reports', 'abc.html'));
@@ -292,4 +292,25 @@ test('wd diff shows the changed lines from Claude\'s transcript, redacted, with 
   const job = path.join(dir, 's.jsonl');
   fs.writeFileSync(job, ev.map((e) => JSON.stringify(e)).join('\n'));
   assert.equal(viewText({ file: job, transcript: tx, opts: { unknown: [], diff: true } }, 100), renderDiff(ev, { transcript: tx, width: 100, unknown: [], diff: true }));
+});
+
+test('html: a prompt list jumps to each turn, the newest three open, and box text is never cut', () => {
+  const ev = [];
+  for (let i = 0; i < 5; i++) {
+    ev.push({ t: T0 + i * 10_000, ev: 'prompt', cwd: '/r', text: `prompt number ${i + 1}` });
+    ev.push({ t: T0 + i * 10_000 + 1, ev: 'tool', tool: 'Read', kind: 'read', target: 'src/deeply/nested/folder/structure/with/a/really/long/file-name-component.ts' });
+    ev.push({ t: T0 + i * 10_000 + 2, ev: 'stop' });
+  }
+  const html = renderHtml(ev, { transcript: null });
+  assert.match(html, /<nav id="prompts">/);
+  const links = [...html.matchAll(/<a href="#turn-(\d+)">/g)].map((m) => Number(m[1]));
+  assert.deepEqual(links, [5, 4, 3, 2, 1], 'newest first');
+  assert.equal((html.match(/<section class="turn" id=/g) || []).length, 3);
+  assert.ok(html.indexOf('id="turn-5"') < html.indexOf('id="turn-1"'), 'newest turn first on the page');
+  // The long path is wrapped across lines inside its box, not cut with an ellipsis.
+  const svg = flowchartSvg(splitTurns(ev)[0]);
+  const shown = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]).join('');
+  assert.ok(shown.replace(/\s/g, '').includes('file-name-component.ts'));
+  assert.ok(!/…<\/text>/.test(svg));
+  assert.match(svg, /<title>[^<]*file-name-component\.ts<\/title>/);
 });

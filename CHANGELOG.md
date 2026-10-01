@@ -2,6 +2,13 @@
 
 > The project was renamed from glassbox to **what did** (package and command: `whatdid`) before its first release. "Glassbox" is an existing session-replay company and is used by 600+ GitHub repos. The trigger is now `wd`.
 
+## 0.1.6 — 2026-10-01
+
+### Changed
+- **HTML report navigation.** A list of every prompt, newest first, sits at the top and jumps straight to that turn's diagram. Turns are shown newest first; the three newest are open and older ones fold to their prompt until you click them. No JavaScript: folding uses CSS `:target`.
+- **Flowchart boxes show their full text.** Long text and paths wrap instead of being cut, the full text is also a hover tooltip, and failed commands show in full.
+- Health counts every file Claude edited or created, so it agrees with "In short".
+
 ## 0.1.5 — 2026-10-01
 
 ### Added

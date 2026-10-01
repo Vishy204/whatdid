@@ -13,16 +13,20 @@ import { diffsFor, diffLines } from './diff.mjs';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Wrap text into at most `max` lines of about `n` characters.
-function wrapText(t, n, max) {
-  const words = String(t ?? '').replace(/\s+/g, ' ').trim().split(' ');
+// Wrap text into lines of about n characters, keeping all of it. Words longer than a line (paths) are split.
+// Only past `max` lines does it stop, and then the last line says how much is left.
+function wrapText(t, n, max = 12) {
+  const words = String(t ?? '').replace(/\s+/g, ' ').trim().split(' ')
+    .flatMap((w) => (w.length > n ? w.match(new RegExp(`.{1,${n}}`, 'g')) : [w]));
   const out = [''];
   for (const w of words) {
     const cur = out[out.length - 1];
-    if ((cur + ' ' + w).trim().length <= n) out[out.length - 1] = (cur + ' ' + w).trim();
-    else if (out.length < max) out.push(w.length > n ? w.slice(0, n - 1) + '…' : w);
-    else { out[out.length - 1] = cur.slice(0, n - 1).replace(/\s*$/, '') + '…'; break; }
+    if (!cur || (cur + ' ' + w).length <= n) out[out.length - 1] = cur ? `${cur} ${w}` : w;
+    else out.push(w);
   }
-  return out;
+  if (out.length <= max) return out;
+  const rest = out.slice(max - 1).join(' ').split(' ').length;
+  return [...out.slice(0, max - 1), `… +${rest} more words (hover for all)`];
 }
 
 // Flowchart for one turn as inline SVG: your prompt, then each step in order down the left, and the files on the
@@ -33,23 +37,24 @@ export function flowchartSvg(turn) {
   const files = [...touchedFiles(turn.tools).keys()].slice(0, 14);
   const W = 860, SX = 16, SW = 430, FX = 560, FW = 284, LH = 16, PAD = 10, GAP = 22;
   const parts = [];
-  const box = (x, y, w, lines, cls, rx = 8) => {
+  const box = (x, y, w, lines, cls, rx = 8, full = lines.join(' ')) => {
     const h = lines.length * LH + PAD * 2 - 4;
-    parts.push(`<g class="${cls}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>` +
+    parts.push(`<g class="${cls}"><title>${esc(full)}</title><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>` +
       lines.map((l, i) => `<text x="${x + 12}" y="${y + PAD + 11 + i * LH}">${esc(l)}</text>`).join('') + '</g>');
     return h;
   };
   let y = 12;
-  const prompt = wrapText(`You asked: ${turn.prompt || "(no prompt)"}`, 54, 2);
-  const ph = box(SX, y, SW, prompt, 'fc-prompt', 18);
+  const ask = `You asked: ${turn.prompt || '(no prompt)'}`;
+  const ph = box(SX, y, SW, wrapText(ask, 54, 8), 'fc-prompt', 18, ask);
   let prevBottom = y + ph;
   y += ph + GAP;
   const stepMid = [];
   steps.forEach((st, i) => {
-    const desc = [].concat(describeStep(st, UNICODE)).join('; ');
+    const desc = [].concat(describeStep(st, UNICODE, true)).join('; ');
     const failed = st.items.some((x) => x.ok === false);
     const cls = failed ? 'fc-step fc-fail' : st.group === 'change' ? 'fc-step fc-change' : 'fc-step';
-    const h = box(SX, y, SW, wrapText(`${i + 1}. ${VERB[st.group]}: ${desc}`, 54, 3), cls);
+    const label = `${i + 1}. ${VERB[st.group]}: ${desc}`;
+    const h = box(SX, y, SW, wrapText(label, 54, 10), cls, 8, label);
     parts.push(`<path class="fc-flow" d="M${SX + SW / 2} ${prevBottom} V${y - 2}" marker-end="url(#fc-arrow)"/>`);
     stepMid.push(y + h / 2);
     prevBottom = y + h;
@@ -58,7 +63,7 @@ export function flowchartSvg(turn) {
   const fileMid = new Map();
   let fy = 12;
   for (const f of files) {
-    const h = box(FX, fy, FW, wrapText(f, 38, 2), 'fc-file', 4);
+    const h = box(FX, fy, FW, wrapText(f, 38, 4), 'fc-file', 4, f);
     fileMid.set(f, fy + h / 2);
     fy += h + 10;
   }
@@ -106,7 +111,7 @@ function diffHtml(turn, transcript, cwd) {
   return `<h3>Changed lines <small>from Claude's Edit and Write tools</small></h3>${body}`;
 }
 
-function turnSection(turn, ti, total, transcript, cwd) {
+function turnSection(turn, ti, total, transcript, cwd, open = true) {
   const tx = transcript ? transcriptInfo(transcript, turn.start, turn.end) : null;
   const meta = [`${turn.tools.length} tool calls`];
   if (turn.end - turn.start >= 1000) meta.unshift(fmtDur(turn.end - turn.start));
@@ -130,9 +135,10 @@ function turnSection(turn, ti, total, transcript, cwd) {
   };
   const recap = tx && tx.recap.length ? `<div class="recap"><h3>Recap</h3><ul class="notes">${tx.recap.map(recapItem).join('')}</ul></div>` : '';
   return `
-<section class="turn" id="turn-${ti + 1}">
-  <header><h2>Turn ${ti + 1} <span>of ${total}</span></h2><p class="meta">${meta.map(esc).join(' · ')}</p></header>
-  ${turn.prompt ? `<blockquote>${esc(turn.prompt)}</blockquote>` : ''}
+<section class="turn${open ? '' : ' folded'}" id="turn-${ti + 1}">
+  <a class="head" href="#turn-${ti + 1}"><h2>Turn ${ti + 1} <span>of ${total}</span></h2><p class="meta">${meta.map(esc).join(' · ')}${open ? '' : ' · <b>click to open</b>'}</p>
+    <p class="ask">${esc(turn.prompt || '(no prompt)')}</p></a>
+  <div class="body">
   ${inShort(turn) ? `<p class="short"><b>In short:</b> ${esc(inShort(turn))}</p>` : ''}
   ${healthHtml(turn)}
   ${turn.tools.length ? `<div class="flowwrap">${flowchartSvg(turn)}</div>` : ''}
@@ -141,6 +147,8 @@ function turnSection(turn, ti, total, transcript, cwd) {
   ${fails.length ? `<h3 class="bad">Heads up: ${fails.length} failed</h3><ul>${fails.map((f) => `<li><code>${esc(f.tool)}</code> ${esc(f.detail || f.target || '')}</li>`).join('')}</ul>` : ''}
   ${diffHtml(turn, transcript, cwd)}
   ${notes}${recap}
+  <p class="top"><a href="#prompts">↑ all prompts</a></p>
+  </div>
 </section>`;
 }
 
@@ -150,8 +158,17 @@ export function renderHtml(events, opts = {}) {
   const started = events.find((e) => e.t)?.t;
   const cwd = events.find((e) => e.cwd)?.cwd || '';
   const project = cwd.split(/[\\/]/).filter(Boolean).pop() || 'session';
+  const order = turns.map((t, i) => i).reverse();
+  const OPEN = 3;
+  const index = turns.length > 1 ? `<nav id="prompts"><h2>Prompts <small>newest first · click one to jump to its diagram</small></h2><ol class="prompts">${
+    order.map((i, k) => {
+      const t = turns[i];
+      const h = t.tools.length ? healthOf(t) : null;
+      const mark = !h ? '' : h.unresolved.length ? '<span class="pm bad">▲</span>' : h.tests && !h.tests.passed ? '<span class="pm bad">✘</span>' : '<span class="pm ok">✔</span>';
+      return `<li><a href="#turn-${i + 1}"><span class="pn">${i + 1}</span>${mark}<span class="pt">${esc(t.prompt || '(no prompt)')}</span><span class="ps">${t.tools.length} step${t.tools.length === 1 ? '' : 's'}${k < OPEN ? '' : ' · collapsed'}</span></a></li>`;
+    }).join('')}</ol></nav>` : '';
   const body = turns.length
-    ? turns.map((t, i) => turnSection(t, i, turns.length, transcript, cwd)).join('\n')
+    ? index + order.map((i, k) => turnSection(turns[i], i, turns.length, transcript, cwd, k < OPEN)).join('\n')
     : '<p>Nothing recorded for this session yet.</p>';
   return `<!doctype html>
 <html lang="en">
@@ -169,8 +186,23 @@ body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui
 main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
 h1 { font-size: 1.6rem; margin: 0 0 4px; }
 .sub { color: var(--muted); margin: 0 0 24px; }
-.turn { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin: 0 0 20px; }
-.turn header { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; }
+.turn { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 18px; margin: 0 0 16px; scroll-margin-top: 12px; }
+.turn > .head { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; color:inherit; text-decoration:none; }
+.turn > .head .ask { flex-basis:100%; margin:6px 0 0; padding:8px 12px; border-left:3px solid var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:0 8px 8px 0; }
+.turn.folded > .body { display:none; }
+.turn.folded:target > .body { display:block; }
+.turn.folded:not(:target) > .head .ask { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.turn.folded:not(:target) { opacity:.85; } .turn.folded:not(:target):hover { opacity:1; }
+.turn.folded:target .meta b { display:none; }
+.turn:target { border-color: var(--accent); }
+#prompts { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 16px; margin:0 0 20px; }
+#prompts h2 { font-size:1.05rem; margin:0 0 8px; } #prompts h2 small { color:var(--muted); font-weight:400; font-size:.85rem; }
+ol.prompts { list-style:none; margin:0; padding:0; display:grid; gap:2px; max-height: 18em; overflow-y:auto; }
+ol.prompts a { display:grid; grid-template-columns: 2.2em 1.4em 1fr auto; gap:8px; align-items:baseline; padding:5px 8px; border-radius:8px; color:inherit; text-decoration:none; }
+ol.prompts a:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.pn { color:var(--muted); text-align:right; font-variant-numeric: tabular-nums; } .pt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ps { color:var(--muted); font-size:.85rem; white-space:nowrap; } .pm.ok { color:#16a34a; } .pm.bad { color: var(--bad); }
+.top { text-align:right; margin:14px 0 0; font-size:.85rem; } .top a { color: var(--muted); }
 .turn h2 { font-size:1.15rem; margin:0; } .turn h2 span { color:var(--muted); font-weight:400; }
 .meta { color:var(--muted); margin:0; font-size:.9rem; }
 h3 { font-size:.95rem; margin:18px 0 6px; } h3 small { color:var(--muted); font-weight:400; }

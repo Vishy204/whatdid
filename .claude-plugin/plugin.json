@@ -1,7 +1,7 @@
 {
   "name": "whatdid",
   "displayName": "what did",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "See what Claude Code did, in plain English, for zero tokens. Type wd for a map of every file read, change made and command run; Claude narrates with typed notes (◆ why, ◇ found, ✔ done, ▲ risk).",
   "author": {
     "name": "Vishy204"
