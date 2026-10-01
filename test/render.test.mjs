@@ -14,8 +14,8 @@ process.env.WHATDID_HOME = TMP;
 process.env.WHATDID_NO_OPEN = '1';
 
 const { render, parseArgs, parseRecap, parseWhys, parseNotes, transcriptInfo, renderHelp } = await import('../scripts/render.mjs');
-const { renderHtml, mermaidFor, mermaidLabel, writeReport } = await import('../scripts/html.mjs');
-const { splitTurns } = await import('../scripts/render.mjs');
+const { renderHtml, flowchartSvg, writeReport } = await import('../scripts/html.mjs');
+const { splitTurns, groupSteps } = await import('../scripts/render.mjs');
 
 // A turn in memory: prompt at T0, then read/search/edit/run, with a fake transcript around it.
 const T0 = Date.parse('2026-09-30T10:00:00Z');
@@ -153,29 +153,24 @@ test('parseArgs flags unknown words so real questions are not intercepted', () =
   assert.equal(parseArgs(['html']).html, true);
 });
 
-test('mermaid labels are escaped and ids are safe', () => {
-  assert.equal(mermaidLabel('a "b" [c] <d>'), 'a #34;b#34; #91;c#93; #60;d#62;');
+test('the flowchart is plain SVG with escaped labels, one box per step and a line per file', () => {
   const turn = splitTurns(events).find((t) => t.prompt);
-  const src = mermaidFor(turn, 0);
-  assert.match(src, /^flowchart TD/);
-  assert.match(src, /t0p0\(\["You asked: fix the #34;login#34; #60;redirect#62;"\]\)/);
-  assert.match(src, /t0s1 == changes ==> t0f1/);
-  assert.match(src, /t0s0 -\. reads \.-> t0f0/);
-  // Every node id (start of a statement) is plain alphanumeric.
-  for (const line of src.split('\n').slice(1)) {
-    const idTok = line.trim().split(/[\s[(/]/)[0];
-    if (idTok !== 'classDef') assert.match(idTok, /^[A-Za-z0-9]+$/, line);
-  }
-  // No raw quotes inside labels.
-  for (const m of src.matchAll(/\["(.*?)"\]/g)) assert.ok(!m[1].includes('"'));
+  const svg = flowchartSvg(turn);
+  assert.match(svg, /^<svg class="flow" viewBox="0 0 860 \d+"/);
+  assert.match(svg, /You asked: fix the &quot;login&quot; &lt;redirect&gt;/);
+  assert.ok(!svg.includes('<redirect>'));
+  assert.equal((svg.match(/class="fc-step/g) || []).length, groupSteps(turn.tools).length);
+  assert.ok(svg.includes('class="fc-read"') && svg.includes('class="fc-write"'));
+  assert.ok(!/<script|on\w+=/i.test(svg));
 });
 
 test('html report is self-contained, escaped, and has light/dark themes', () => {
   const html = renderHtml(events, {});
   assert.match(html, /^<!doctype html>/);
   assert.match(html, /<title>what did · session report<\/title>/);
-  assert.match(html, /<pre class="mermaid">flowchart TD/);
-  assert.match(html, /cdn\.jsdelivr\.net\/npm\/mermaid@11/);
+  assert.match(html, /<svg class="flow"/);
+  assert.match(html, /<h3>Health<\/h3>/);
+  assert.ok(!/<script|https?:\/\//i.test(html.replace(/https:\/\/github\.com[^"<]*/g, '')), 'no scripts and nothing loaded from the network');
   assert.match(html, /prefers-color-scheme: dark/);
   assert.match(html, /name="viewport"/);
   assert.match(html, /<blockquote>fix the &quot;login&quot; &lt;redirect&gt;<\/blockquote>/);
@@ -252,4 +247,49 @@ test('wd map in a folder of many projects lists them instead of mixing them', as
   assert.match(text, /^ {2}b\/c$/m);
   assert.match(mapView(root, 'a'), /# Repo map: a/);
   assert.match(mapView(root, 'nope'), /no folder "nope"/);
+});
+
+test('health: tests passed or failing, failures fixed later, and what is still unresolved', async () => {
+  const { healthOf } = await import('../scripts/render.mjs');
+  const t0 = 1_000_000;
+  const run = (detail, ok, extra = {}) => ({ ev: 'tool', kind: 'run', tool: 'Bash', detail, ok, ...extra });
+  const turn = (tools) => ({ tools: tools.map((e, i) => ({ t: t0 + i, ...e })) });
+  let h = healthOf(turn([run('npm test', false), { ev: 'tool', kind: 'edit', tool: 'Edit', target: 'a.js', add: 2, del: 1, ok: true }, run('npm test -- auth', true)]));
+  assert.deepEqual([h.tests.passed, h.tests.runs, h.failedCommands, h.unresolved.length, h.changed, h.add, h.del], [true, 2, 1, 0, 1, 2, 1]);
+  h = healthOf(turn([run('pytest -q', false), run('npm run build', false), run('ls', true)]));
+  assert.equal(h.tests.passed, false);
+  assert.deepEqual(h.unresolved.map((e) => e.detail), ['pytest -q', 'npm run build']);
+  h = healthOf(turn([run('ls', true)]));
+  assert.equal(h.tests, null);
+  assert.equal(healthOf(turn([run('make check', true)])).tests.passed, true);
+  assert.equal(healthOf(turn([run('node x.mjs', true, { why: 'Run the unit tests' })])).tests.runs, 1);
+});
+
+test('wd diff shows the changed lines from Claude\'s transcript, redacted, with line numbers', async () => {
+  const { renderDiff, viewText } = await import('../scripts/render.mjs');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wd-diff-'));
+  const tx = path.join(dir, 't.jsonl');
+  const at = (ms) => new Date(T0 + ms).toISOString();
+  fs.writeFileSync(tx, [
+    { type: 'user', timestamp: at(2000), toolUseResult: { type: 'update', filePath: '/repo/src/a.js',
+      structuredPatch: [{ oldStart: 10, newStart: 10, lines: [' keep', '-const k = 1;', '+const k = 2;', '+const API_KEY = "sk-abcdefghijklmnopqrstuv";'] }] } },
+    { type: 'user', timestamp: at(3000), toolUseResult: { type: 'create', filePath: '/repo/test/new.test.js', content: 'line1\nline2\n', structuredPatch: [] } },
+    { type: 'user', timestamp: at(99_999_999), toolUseResult: { type: 'update', filePath: '/repo/other.js', structuredPatch: [{ oldStart: 1, newStart: 1, lines: ['+later turn'] }] } },
+  ].map((x) => JSON.stringify(x)).join('\n'));
+  const ev = [
+    { t: T0, ev: 'prompt', cwd: '/repo', text: 'bump k', transcript: tx },
+    { t: T0 + 2000, ev: 'tool', tool: 'Edit', kind: 'edit', target: 'src/a.js', add: 2, del: 1 },
+    { t: T0 + 4000, ev: 'stop' },
+  ];
+  const text = renderDiff(ev, { transcript: tx });
+  assert.match(text, /what did diff · turn 1 · 2 files changed \(\+4 −1\)/);
+  assert.match(text, /› src\/a\.js {2}\(\+2 −1\)/);
+  assert.match(text, /^│ {4}11 - const k = 1;$/m);
+  assert.match(text, /^│ {4}11 \+ const k = 2;$/m);
+  assert.match(text, /› test\/new\.test\.js {2}\(new file, \+2 −0\)/);
+  assert.ok(!text.includes('sk-abcdef'), 'secrets in changed lines are redacted');
+  assert.ok(!text.includes('later turn'), 'only the last turn');
+  const job = path.join(dir, 's.jsonl');
+  fs.writeFileSync(job, ev.map((e) => JSON.stringify(e)).join('\n'));
+  assert.equal(viewText({ file: job, transcript: tx, opts: { unknown: [], diff: true } }, 100), renderDiff(ev, { transcript: tx, width: 100, unknown: [], diff: true }));
 });

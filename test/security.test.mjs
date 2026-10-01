@@ -27,6 +27,11 @@ test('secrets are redacted before anything is logged', () => {
     'aws configure set aws_access_key_id AKIAABCDEFGHIJKLMNOP': 'AKIAABCDEFGHIJKLMNOP',
     'STRIPE=sk_live_abcdefghijklmnop1234 node pay.js': 'sk_live_abcdef',
     '-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n-----END RSA PRIVATE KEY-----': 'MIIEow',
+    'curl -H "Authorization: Token abcdef123456" api': 'abcdef123456',
+    'curl -H "Proxy-Authorization: Digest username=bob, response=6629fae4" x': '6629fae4',
+    "curl -H 'Cookie: session=s3ss10nv4lue; theme=dark' x": 's3ss10nv4lue',
+    'Set-Cookie: sid=abc123xyz789; HttpOnly': 'abc123xyz789',
+    'curl --cookie "sid=abc123xyz789" x': 'abc123xyz789',
   };
   for (const [input, secret] of Object.entries(cases)) assert.ok(!redact(input).includes(secret), `${input} -> ${redact(input)}`);
   assert.equal(redact('npm test -- auth'), 'npm test -- auth', 'ordinary commands are untouched');
@@ -55,6 +60,33 @@ test('logs are private to the user on macOS and Linux', { skip: process.platform
   assert.equal(fs.statSync(sessionFile('perm')).mode & 0o077, 0);
 });
 
+test('setup config, statusline copy and map cache are private too', { skip: process.platform === 'win32' }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'wd-perm-'));
+  const settings = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'wd-set-')), 'settings.json');
+  const env = { ...process.env, WHATDID_HOME: home, WHATDID_CLAUDE_SETTINGS: settings };
+  spawnSync(process.execPath, [path.join(ROOT, 'scripts/setup.mjs'), 'statusline'], { env });
+  spawnSync(process.execPath, [path.join(ROOT, 'scripts/setup.mjs'), 'automap', 'on'], { env });
+  spawnSync(process.execPath, [path.join(ROOT, 'scripts/map.mjs'), ROOT], { env });
+  const priv = (p) => assert.equal(fs.statSync(p).mode & 0o077, 0, p);
+  priv(path.join(home, 'config.json'));
+  priv(path.join(home, 'bin'));
+  priv(path.join(home, 'bin', 'statusline.mjs'));
+  priv(path.join(home, 'maps'));
+  for (const f of fs.readdirSync(path.join(home, 'maps'))) priv(path.join(home, 'maps', f));
+});
+
+test('an older, world-readable ~/.whatdid is tightened at session start', { skip: process.platform === 'win32' }, () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'wd-old-'));
+  fs.mkdirSync(path.join(home, 'sessions'), { mode: 0o755 });
+  fs.writeFileSync(path.join(home, 'sessions', 'old.jsonl'), '{}\n', { mode: 0o644 });
+  fs.chmodSync(home, 0o755);
+  spawnSync(process.execPath, [path.join(ROOT, 'scripts/record.mjs')], {
+    input: JSON.stringify({ session_id: 's', cwd: ROOT, hook_event_name: 'SessionStart', source: 'resume' }),
+    env: { ...process.env, WHATDID_HOME: home, WHATDID_AUTOMAP: '0' },
+  });
+  for (const p of [home, path.join(home, 'sessions'), path.join(home, 'sessions', 'old.jsonl')]) assert.equal(fs.statSync(p).mode & 0o077, 0, p);
+});
+
 test('the HTML report escapes everything and locks scripts down', () => {
   const t = Date.now();
   const html = renderHtml([
@@ -64,9 +96,9 @@ test('the HTML report escapes everything and locks scripts down', () => {
   ], { transcript: null });
   assert.ok(!html.includes('<img src=x'));
   assert.ok(!/<script>alert/.test(html));
-  assert.match(html, /Content-Security-Policy[^>]*default-src 'none'[^>]*connect-src 'none'/);
-  assert.match(html, /securityLevel: 'strict'/);
-  assert.match(html, /mermaid@\d+\.\d+\.\d+\//, 'Mermaid is pinned to an exact version');
+  assert.match(html, /Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'/);
+  assert.ok(!/script-src|<script/i.test(html), 'the report runs no JavaScript at all');
+  assert.ok(!/(src|href)="https?:/i.test(html), 'and loads nothing from the network');
 });
 
 test('install refuses sources a Windows shell would interpret', () => {

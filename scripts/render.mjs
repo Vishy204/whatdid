@@ -6,6 +6,7 @@ import { findSession, readEvents, readJsonl, clip } from './lib.mjs';
 import { importEdges, mapView } from './map.mjs';
 import { writeReport, openInBrowser } from './html.mjs';
 import { colorize } from './colorize.mjs';
+import { diffsFor, diffLines } from './diff.mjs';
 
 export const UNICODE = { tl: '┌', v: '│', bl: '└', h: '─', tee: '├─ ', last: '└─ ', pipe: '│  ', ok: '✔', fail: '✘', wait: '…', dot: '·', arrow: '→', uses: '──▶', bullet: '›', plus: '+', minus: '−' };
 export const ASCII = { tl: '+', v: '|', bl: '+', h: '-', tee: '|- ', last: '`- ', pipe: '|  ', ok: 'ok', fail: 'FAIL', wait: '..', dot: '-', arrow: '->', uses: '-->', bullet: '>', plus: '+', minus: '-' };
@@ -503,6 +504,8 @@ export function renderTurn(turn, idx, total, opts = {}) {
     push();
   }
 
+  pushHealth(push, turn, S, width);
+
   const steps = groupSteps(turn.tools);
   if (steps.length) {
     push('What Claude did');
@@ -633,6 +636,7 @@ export function renderHelp(opts = {}) {
     ['wd', '/whatdid:wd', 'the last turn: files, commands, failures, answer'],
     ['wd 3 · wd all', '/whatdid:wd 3', 'the last 3 turns · the whole session'],
     ['wd replay', '/whatdid:wd-replay', 'every single step in order, with timings and why'],
+    ['wd diff', '/whatdid:wd-diff', 'the exact lines Claude changed in the last turn'],
     ['wd map', '/whatdid:wd-map', 'map of this codebase: key files, symbols, who imports what'],
     ['wd map src', '/whatdid:wd-map src', 'the map of one folder'],
     ['wd html', '/whatdid:wd-html', 'the session as a web page with a flowchart'],
@@ -647,6 +651,81 @@ export function renderHelp(opts = {}) {
   return close();
 }
 
+// Commands that run a test suite, in the common ecosystems.
+const TEST_CMD = /\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:test|t)\b|\b(?:pytest|jest|vitest|mocha|ava|phpunit|rspec|ctest|unittest)\b|\b(?:go|cargo|dotnet|mix|deno|swift|zig)\s+test\b|\b(?:mvn|gradlew?|make)\b[^|;&]*\b(?:test|check)\b|\bnode\s+(?:--test|test\/)/i;
+export const isTestCommand = (e) => e.kind === 'run' && (TEST_CMD.test(e.detail || '') || /\btests?\b/i.test(e.why || ''));
+
+// Session health for one turn: did tests pass, what failed, and is any failure still unresolved?
+// A failure counts as resolved when the same command (any test run, for a failed test run) or the same
+// file operation succeeds later in the turn.
+export function healthOf(turn) {
+  const t = turn.tools.filter((e) => !(e.kind === 'read' && e.target === '.'));
+  const key = (e) => (e.kind === 'run' ? (isTestCommand(e) ? 'test-suite' : `run:${e.detail}`) : `${e.kind}:${e.target}`);
+  const runs = t.filter((e) => e.kind === 'run');
+  const tests = runs.filter(isTestCommand);
+  const failed = t.filter((e) => e.ok === false);
+  const unresolved = failed.filter((f) => !t.slice(t.indexOf(f) + 1).some((e) => e.ok !== false && key(e) === key(f)));
+  const changed = [...touchedFiles(t)].filter(([, f]) => f.marks.has('E') || f.marks.has('N'));
+  return {
+    tests: tests.length ? { runs: tests.length, passed: tests[tests.length - 1].ok !== false, last: tests[tests.length - 1] } : null,
+    commands: runs.length,
+    failedCommands: runs.filter((e) => e.ok === false).length,
+    failed: failed.length,
+    unresolved,
+    changed: changed.length,
+    add: changed.reduce((a, [, f]) => a + f.add, 0),
+    del: changed.reduce((a, [, f]) => a + f.del, 0),
+  };
+}
+
+function pushHealth(push, turn, S, width) {
+  if (!turn.tools.length) return;
+  const h = healthOf(turn);
+  const g = S === ASCII ? { none: 'o', pen: '*', warn: '!' } : { none: '○', pen: '✎', warn: '▲' };
+  const row = (glyph, label, text) => wrap(text, width - 20, ' '.repeat(16), 2).forEach((l, i) => push(i ? l : `  ${glyph} ${label.padEnd(11)} ${l}`));
+  push('Health');
+  if (!h.tests) row(g.none, 'tests', 'not run in this turn');
+  else {
+    const what = h.tests.last.why || clip(h.tests.last.detail, 50);
+    row(h.tests.passed ? S.ok : S.fail, 'tests', `${h.tests.passed ? 'passed' : 'failing'} ${S.dot} ${what}${h.tests.runs > 1 ? ` (${h.tests.runs} runs)` : ''}`);
+  }
+  if (h.commands) {
+    const fixed = h.failedCommands - h.unresolved.filter((e) => e.kind === 'run').length;
+    const text = !h.failedCommands ? `${h.commands} ran, all worked`
+      : `${h.commands} ran, ${h.failedCommands} failed${fixed ? `${fixed === h.failedCommands ? ', all' : `, ${fixed}`} fixed later` : ''}`;
+    row(h.failedCommands > fixed ? S.fail : S.ok, 'commands', text);
+  }
+  row(g.pen, 'files', h.changed ? `${h.changed} changed (${S.plus}${h.add} ${S.minus}${h.del})` : 'none changed');
+  if (!h.unresolved.length) row(S.ok, 'unresolved', 'none');
+  else row(g.warn, 'unresolved', h.unresolved.slice(0, 3).map((e) => clip(e.why || e.detail || e.target || e.tool, 50)).join(` ${S.dot} `) + (h.unresolved.length > 3 ? ` +${h.unresolved.length - 3} more` : ''));
+  push();
+}
+
+// wd diff: the lines Claude changed in the last turn, from Claude Code's transcript.
+export function renderDiff(events, opts = {}) {
+  const S = opts.ascii ? ASCII : UNICODE;
+  const width = opts.width || 100;
+  const turns = splitTurns(events).filter((t) => t.prompt || t.tools.length);
+  const turn = turns[turns.length - 1];
+  const { L, push, close } = frame(S, width);
+  if (!turn) return 'what did: nothing recorded in this session yet.';
+  const cwd = [...events].reverse().find((e) => e.cwd)?.cwd || '';
+  const transcript = 'transcript' in opts ? opts.transcript : [...events].reverse().find((e) => e.transcript)?.transcript;
+  const diffs = diffsFor(transcript, turn.start, turn.end, cwd);
+  const add = diffs.reduce((a, d) => a + d.add, 0), del = diffs.reduce((a, d) => a + d.del, 0);
+  L.push(`${S.tl}${S.h} what did diff ${S.dot} turn ${turns.length} ${S.dot} ${diffs.length} file${diffs.length === 1 ? '' : 's'} changed (${S.plus}${add} ${S.minus}${del})`);
+  push();
+  if (turn.prompt) { wrap(`"${clip(turn.prompt, 200)}"`, width - 16, ' '.repeat(12)).forEach((l, i) => push((i ? '' : 'You asked:  ') + l)); push(); }
+  if (!diffs.length) push('No file edits in this turn.');
+  for (const d of diffs) {
+    push(`${S.bullet} ${d.file}  (${d.created ? 'new file, ' : ''}${S.plus}${d.add} ${S.minus}${d.del})`);
+    diffLines(d, { full: opts.full, S }).forEach((l) => push(l.length > width - 4 ? l.slice(0, width - 5) + '…' : l));
+    push();
+  }
+  push('From Claude\'s Edit and Write tools. Edits made by shell commands are not shown.');
+  return close();
+}
+
 // The text of any wd view except html. job: { file, cwd, transcript, opts }.
 export function viewText(job, width = 100) {
   const o = job.opts || {};
@@ -654,6 +733,7 @@ export function viewText(job, width = 100) {
   if (o.map) return mapView(job.cwd, o.mapPath);
   const events = job.file ? readEvents(job.file) : [];
   if (!events.length) return 'what did: nothing recorded in this session yet. Give Claude a task, then type wd.';
+  if (o.diff) return renderDiff(events, { ...o, transcript: job.transcript, width });
   return render(events, { ...o, transcript: job.transcript, width });
 }
 
@@ -719,6 +799,7 @@ export function parseArgs(argv) {
     else if (a === '--html' || a === 'html') o.html = true;
     else if (a === '--no-open') o.noOpen = true;
     else if (a === '--map' || a === 'map') o.map = true;
+    else if (a === '--diff' || a === 'diff') o.diff = true;
     else if (a === '--help' || a === 'help' || a === '-h' || a === '?') o.help = true;
     else if (/^\d+$/.test(a)) o.last = parseInt(a, 10);
     else if (o.map && !o.mapPath && !a.startsWith('-')) o.mapPath = a;

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { home } from './lib.mjs';
+import { home, PRIVATE_DIR, PRIVATE_FILE } from './lib.mjs';
 
 const settingsPath = process.env.WHATDID_CLAUDE_SETTINGS || path.join(os.homedir(), '.claude', 'settings.json');
 const configPath = path.join(home(), 'config.json');
@@ -15,10 +15,13 @@ const ourCommand = `node "${target.replace(/\\/g, '/')}"`;
 
 const readJson = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return {}; } };
 const writeJson = (p, v) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(v, null, 2) + '\n'); };
+// Our own config (it can hold your previous statusline command) is private; Claude's settings.json keeps its mode.
+const writePrivateJson = (p, v) => { fs.mkdirSync(path.dirname(p), PRIVATE_DIR); fs.writeFileSync(p, JSON.stringify(v, null, 2) + '\n', PRIVATE_FILE); try { fs.chmodSync(p, 0o600); } catch {} };
 
 function install() {
-  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.mkdirSync(path.dirname(target), PRIVATE_DIR);
   fs.copyFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'statusline.mjs'), target);
+  try { fs.chmodSync(target, 0o600); } catch {}
 
   const settings = readJson(settingsPath);
   const current = settings.statusLine?.command;
@@ -27,7 +30,7 @@ function install() {
   if (fs.existsSync(settingsPath)) fs.copyFileSync(settingsPath, settingsPath + '.whatdid-backup');
   const cfg = readJson(configPath);
   if (current) cfg.wrap = current;
-  writeJson(configPath, cfg);
+  writePrivateJson(configPath, cfg);
   settings.statusLine = { type: 'command', command: ourCommand };
   writeJson(settingsPath, settings);
   console.log(`Installed whatdid statusline.${current ? `\nYour previous statusline still shows first: ${current}` : ''}\nBackup: ${settingsPath}.whatdid-backup\nIt appears after your next message.`);
@@ -41,7 +44,7 @@ function uninstall() {
   if (prev) settings.statusLine = { type: 'command', command: prev };
   else delete settings.statusLine;
   delete cfg.wrap;
-  writeJson(configPath, cfg);
+  writePrivateJson(configPath, cfg);
   writeJson(settingsPath, settings);
   console.log(prev ? `Restored previous statusline: ${prev}` : 'Removed what did statusline.');
 }
@@ -50,7 +53,7 @@ function automap(mode) {
   const cfg = readJson(configPath);
   if (mode === 'off') delete cfg.autoMap;
   else cfg.autoMap = mode === 'on' ? true : 'auto';
-  writeJson(configPath, cfg);
+  writePrivateJson(configPath, cfg);
   console.log({
     on: 'Auto-map on: every new session starts with a ~2k-token map of the repo, so Claude knows where things live before it reads anything.',
     off: 'Auto-map off (the default). Type wd map any time to see the map yourself, for free.',
@@ -61,7 +64,7 @@ function automap(mode) {
 function autoCard(on) {
   const cfg = readJson(configPath);
   cfg.autoCard = on;
-  writeJson(configPath, cfg);
+  writePrivateJson(configPath, cfg);
   console.log(on
     ? 'Auto card on: after every turn, a one-line what did summary appears. Zero tokens. Type wd for the full map.'
     : 'Auto card off.');
@@ -71,7 +74,7 @@ function notify(on) {
   const cfg = readJson(configPath);
   if (on) delete cfg.notify;
   else cfg.notify = false;
-  writeJson(configPath, cfg);
+  writePrivateJson(configPath, cfg);
   console.log(on
     ? 'Notifications on: when a turn takes 20s or more, your terminal pops a desktop notification with the summary (Windows Terminal, iTerm2, WezTerm, Ghostty, kitty).'
     : 'Notifications off.');
@@ -81,7 +84,7 @@ function pane(on) {
   const cfg = readJson(configPath);
   if (on) delete cfg.pane;
   else cfg.pane = false;
-  writeJson(configPath, cfg);
+  writePrivateJson(configPath, cfg);
   console.log(on
     ? 'Pane on: wd opens in colour in a pane below Claude Code (Windows Terminal, tmux, WezTerm, iTerm2).'
     : 'Pane off: wd prints inside Claude Code instead.');

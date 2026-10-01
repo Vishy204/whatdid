@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { home } from './lib.mjs';
+import { home, PRIVATE_DIR, PRIVATE_FILE } from './lib.mjs';
 
 const CACHE_VERSION = 2; // 2: symbol line numbers and file line counts
 const MAX_BYTES = 256 * 1024;
@@ -414,8 +414,9 @@ export function buildMap(root, opts = {}) {
   if (Object.keys(cache.files).some((f) => !info[f])) dirty = true;
   if (dirty && opts.cache !== false) {
     try {
-      fs.mkdirSync(path.dirname(cp), { recursive: true });
-      fs.writeFileSync(cp, JSON.stringify({ v: CACHE_VERSION, root: posix(root), files: info }));
+      fs.mkdirSync(home(), PRIVATE_DIR);
+      fs.mkdirSync(path.dirname(cp), PRIVATE_DIR);
+      fs.writeFileSync(cp, JSON.stringify({ v: CACHE_VERSION, root: posix(root), files: info }), PRIVATE_FILE);
     } catch {}
   }
 

@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendEvent, home, autoMapMode, AUTOMAP_MIN_TOKENS, autoCardEnabled, notifyEnabled, notifySequence, NOTIFY_MIN_MS, takeWelcome, redact, clip, summarizeTool, readEvents, sessionFile } from './lib.mjs';
+import { appendEvent, home, PRIVATE_DIR, PRIVATE_FILE, tightenPermissions, autoMapMode, AUTOMAP_MIN_TOKENS, autoCardEnabled, notifyEnabled, notifySequence, NOTIFY_MIN_MS, takeWelcome, redact, clip, summarizeTool, readEvents, sessionFile } from './lib.mjs';
 import { renderCard, parseArgs, viewText } from './render.mjs';
 import { openPane } from './pane.mjs';
 import { writeReport, openInBrowser } from './html.mjs';
@@ -27,8 +27,8 @@ function installStatusline() {
   let cur = null;
   try { cur = fs.readFileSync(dst); } catch {}
   if (!cur || !cur.equals(data)) {
-    fs.mkdirSync(path.dirname(dst), { recursive: true });
-    fs.writeFileSync(dst, data);
+    fs.mkdirSync(path.dirname(dst), PRIVATE_DIR);
+    fs.writeFileSync(dst, data, PRIVATE_FILE);
   }
 }
 
@@ -44,6 +44,7 @@ function main() {
     case 'SessionStart':
       appendEvent(sid, { t, ev: 'start', source: h.source, cwd, transcript: h.transcript_path });
       try { installStatusline(); } catch {}
+      try { tightenPermissions(); } catch {}
       {
         const out = {};
         if (h.source === 'startup' && takeWelcome()) {
@@ -71,7 +72,7 @@ function main() {
     case 'UserPromptExpansion': {
       // The /whatdid:wd… commands: listed with descriptions in Claude Code's / menu, answered here for free.
       const name = String(h.command_name || '').replace(/^whatdid:/, '');
-      const sub = { wd: [], 'wd-replay': ['replay'], 'wd-map': ['map'], 'wd-html': ['html'], 'wd-help': ['help'] }[name];
+      const sub = { wd: [], 'wd-replay': ['replay'], 'wd-diff': ['diff'], 'wd-map': ['map'], 'wd-html': ['html'], 'wd-help': ['help'] }[name];
       if (!sub) break;
       const args = Array.isArray(h.arguments) ? h.arguments : String(h.arguments || '').split(/\s+/);
       const opts = parseArgs([...sub, ...args.filter(Boolean)]);

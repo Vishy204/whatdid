@@ -43,6 +43,17 @@ export const PRIVATE_FILE = { mode: 0o600 };
 // they could retitle the window, rewrite the clipboard or fake output. Tabs become spaces; newlines are kept.
 export const stripControl = (s) => String(s ?? '').replace(/\t/g, '  ').replace(/[\x00-\x09\x0b-\x1f\x7f-\x9f]/g, '');
 
+// mkdir's mode only applies to new folders, so tighten what an older version may have created 0755/0644.
+export function tightenPermissions() {
+  if (process.platform === 'win32') return;
+  const dirs = ['', 'sessions', 'reports', 'pane', 'bin', 'maps'].map((d) => path.join(home(), d));
+  for (const d of dirs) {
+    let entries;
+    try { fs.chmodSync(d, 0o700); entries = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) if (e.isFile()) try { fs.chmodSync(path.join(d, e.name), 0o600); } catch {}
+  }
+}
+
 export function saveConfig(patch) {
   const next = { ...config(), ...patch };
   fs.mkdirSync(home(), PRIVATE_DIR);
@@ -167,11 +178,13 @@ const SECRET_PATTERNS = [
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(-----END [A-Z ]*PRIVATE KEY-----|$)/g, '***'],
   [/\b(sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{16,}|xox[abprs]-[A-Za-z0-9-]{10,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|npm_[A-Za-z0-9]{30,}|(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{16,})\b/g, '***'],
   [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, '***'],
-  [/\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi, '$1 ***'],
+  // Authorization / Proxy-Authorization / Cookie / Set-Cookie: the whole value, whatever the scheme.
+  [/\b((?:proxy-)?authorization|set-cookie|cookie)(\s*[:=]\s*)("[^"]*"|'[^']*'|[^\r\n"']+)/gi, '$1$2***'],
+  [/\b(bearer|basic|token|digest)\s+[A-Za-z0-9._~+/=-]{8,}/gi, '$1 ***'],
   // Passwords inside URLs: https://user:pass@host, postgres://user:pass@db
   [/\b([a-z][a-z0-9+.-]*:\/\/[^\s:/@]+):[^\s@/]+@/gi, '$1:***@'],
   // --password hunter2, -p=secret style flags
-  [/(--?(?:password|passwd|pass|token|secret|api[_-]?key|access[_-]?key|auth)[ =])("[^"]*"|'[^']*'|\S+)/gi, '$1***'],
+  [/(--?(?:password|passwd|pass|token|secret|api[_-]?key|access[_-]?key|auth|cookie)[ =])("[^"]*"|'[^']*'|\S+)/gi, '$1***'],
   [/\b([A-Za-z_]*(?:api[_-]?key|token|secret|passw(?:or)?d|pwd)[A-Za-z_]*)(\s*[=:]\s*)("[^"]*"|'[^']*'|\S+)/gi, '$1$2***'],
 ];
 

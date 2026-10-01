@@ -80,6 +80,15 @@ function styles(line) {
   }
   each(/\((?:→ step \d+|at the end)\)/g, (x) => paint(x.index, x.index + x[0].length, C.dim));
   each(/\+\d+ more( commands)?/g, (x) => paint(x.index, x.index + x[0].length, C.violet, true));
+  // wd diff: added and removed lines, hunk headers and the changed file.
+  if (framed) {
+    const d = body.match(/^\s*\d+ ([+-]) /);
+    if (d) paint(off, n, d[1] === '+' ? C.green : C.red);
+    else if (/^\s*\d+ {3}/.test(body)) paint(off, n, C.dim);
+    else if (/^@@ line \d+ @@$/.test(body)) paint(off, n, C.cyan);
+    else if (/^› \S.*  \((new file, )?\+\d+ −\d+\)$/.test(body)) paint(off + 2, off + body.indexOf('  ('), C.blue, true);
+  }
+  each(/^┌─ (what did diff)/g, () => paint(3, 16, C.cyan, true));
   // Import chains.
   each(/──▶/g, (x) => paint(x.index, x.index + 3, C.violet, true));
   each(/\[edited\]/g, (x) => paint(x.index, x.index + x[0].length, C.amber));

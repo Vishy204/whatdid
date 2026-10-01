@@ -57,6 +57,7 @@ Type any of these as your whole message, or type **`/wd`** and pick one from the
 |---|---|---|
 | **`wd`** | `/whatdid:wd` | The last turn: what you asked, a one-line summary, Claude's answer, every step, files, connections, failures |
 | `wd replay` | `/whatdid:wd-replay` | Every step in order, with timings and Claude's reason for each |
+| `wd diff` | `/whatdid:wd-diff` | The exact lines Claude changed in the last turn, file by file, with line numbers |
 | `wd html` | `/whatdid:wd-html` | The session as a web page with a flowchart, opened in your browser |
 | `wd map` | `/whatdid:wd-map` | A ~2k-token map of the codebase: key files, symbols, who imports what. `wd map src` maps one folder |
 | `wd 3` · `wd all` | `/whatdid:wd 3` | The last 3 turns · the whole session |
@@ -71,6 +72,12 @@ Type any of these as your whole message, or type **`/wd`** and pick one from the
 │
 │ You asked:  "Logged-in users keep getting bounced to /login even with a valid session. Find and fix it."
 │ In short:   Read 4 files, searched once, edited 2 files (+4 −3 lines), ran 2 commands, 1 failed.
+│
+│ Health
+│   ✔ tests       passed · Re-run the auth tests (2 runs)
+│   ✔ commands    2 ran, 1 failed, 1 fixed later
+│   ✎ files       2 changed (+4 −3)
+│   ✔ unresolved  none
 │
 │ What Claude did
 │   1. Looked at  src/routes.ts, src/auth/guard.ts, src/auth/session.ts, src/config/auth.ts
@@ -98,6 +105,7 @@ Type any of these as your whole message, or type **`/wd`** and pick one from the
 | Section | What it is |
 |---|---|
 | **In short** | One plain-English line: how much Claude read, changed and ran, and whether anything failed |
+| **Health** | Did tests pass, which commands failed, how many files changed, and whether any failure is still unresolved at the end |
 | **Claude's answer** | How Claude's final message begins, so you get the conclusion without scrolling up |
 | **What Claude did** | Every step, grouped. Commands show what they were for; the raw command only shows when it failed |
 | **Files** | A tree of every file touched: **R** read, **E** edited, **N** new, with lines added and removed |
@@ -129,7 +137,7 @@ In Windows Terminal, tmux, WezTerm and iTerm2, `wd` opens in a full-width pane b
 <summary><b>More: live statusline, HTML report, terminal command, settings</b></summary>
 
 - **Live statusline:** `/whatdid:setup` adds a line at the bottom of the terminal showing Claude's latest note as it works (`◇ found expiresAt is seconds… · step 6 · editing session.ts`). If you already have a statusline, such as GSD's, it stays and shows first.
-- **HTML report:** `wd html` writes one self-contained page with a Mermaid flowchart, the file tree, and every note as a coloured badge.
+- **HTML report:** `wd html` writes one self-contained page: health, a flowchart of every step and file, the changed lines, the file tree and every note as a coloured badge. It runs no JavaScript and loads nothing from the network, so it works offline.
 
   <img src="assets/report.png" alt="what did HTML report with a flowchart of the steps" width="640">
 
@@ -203,7 +211,7 @@ Almost nothing. Every view is built by local scripts from the hook log, so the m
 
 | Feature | Tokens |
 |---|---|
-| `wd`, `wd replay`, `wd 3`, `wd all`, `wd map`, `wd html`, `wd help`, and the `/whatdid:wd…` commands | **0**: a hook answers, and the prompt never reaches the model |
+| `wd`, `wd replay`, `wd diff`, `wd 3`, `wd all`, `wd map`, `wd html`, `wd help`, and the `/whatdid:wd…` commands | **0**: a hook answers, and the prompt never reaches the model |
 | Colour pane, one-line card after each turn, desktop notification, live statusline, welcome hint | **0**: drawn by hooks and local scripts |
 | Recording every step | **0**: hooks write to `~/.whatdid` in the background |
 | Having the plugin installed | ~200 tokens per session: the descriptions of the skills Claude can use (the `/wd` commands add none) |
@@ -266,15 +274,15 @@ It's in `~/.whatdid/`, private to you, with common secrets redacted before anyth
 
 - [x] Zero-token map, replay, HTML report, repo map, live statusline, auto card, typed narration
 - [x] Colour pane with scrolling and expand, `/wd` menu, desktop notifications
+- [x] `wd diff`, session health, offline HTML report
 - [ ] Codex CLI and Gemini CLI support
-- [ ] `wd diff`: the actual changed lines of the last turn
 - [ ] More benchmarks: more codebases, more runs, bigger models
 - [ ] Share a session as a link
 
 ## Contributing
 
 ```bash
-npm test                          # 68 tests, node --test, zero dependencies
+npm test                          # 73 tests, node --test, zero dependencies
 npm run demo                      # the demo session, no API calls
 claude --plugin-dir .             # run Claude Code with your working copy
 python assets/src/make_gifs.py    # regenerate the README GIFs from the real renderer

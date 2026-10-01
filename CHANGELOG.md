@@ -2,6 +2,20 @@
 
 > The project was renamed from glassbox to **what did** (package and command: `whatdid`) before its first release. "Glassbox" is an existing session-replay company and is used by 600+ GitHub repos. The trigger is now `wd`.
 
+## 0.1.5 — 2026-10-01
+
+### Added
+- **`wd diff`** (`/whatdid:wd-diff`): the exact lines Claude changed in the last turn, file by file, with line numbers, read from Claude Code's transcript and redacted. Expand and scroll in the colour pane.
+- **Health** section in `wd` and the HTML report: tests passed or failing, commands failed and fixed, files changed, and failures still unresolved.
+- The HTML report shows each turn's changed lines and health.
+
+### Changed
+- **The HTML report is fully offline.** The flowchart is now SVG drawn by what did instead of Mermaid from a CDN; the page runs no JavaScript and its Content Security Policy blocks scripts and network requests.
+
+### Security
+- Config, the statusline copy and the map cache are private too (`0700`/`0600`), and older world-readable folders are tightened at session start.
+- `Authorization` (any scheme), `Proxy-Authorization`, `Cookie`, `Set-Cookie` and `--cookie` values are redacted.
+
 ## 0.1.4 — 2026-10-01
 
 ### Security

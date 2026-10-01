@@ -1,60 +1,112 @@
-// Writes a session as one self-contained HTML page: turns, steps, file tree and a Mermaid flowchart.
-// Deterministic, no model calls. Mermaid loads from jsDelivr; without network the diagram source stays readable.
+// Writes a session as one self-contained HTML page: turns, health, a flowchart, steps, files and changed lines.
+// Deterministic, no model calls, no JavaScript and no network: the flowchart is SVG drawn here.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { home, PRIVATE_DIR, PRIVATE_FILE } from './lib.mjs';
 import {
   splitTurns, groupSteps, describeStep, fileTree, touchedFiles, transcriptInfo, VERB, UNICODE, fmtK, fmtDur, NOTE_TYPES, RECAP_TYPES,
+  healthOf, inShort,
 } from './render.mjs';
+import { diffsFor, diffLines } from './diff.mjs';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Mermaid label text inside ["..."]: quotes and markup-ish characters become entity codes.
-export function mermaidLabel(s, n = 60) {
-  let t = String(s ?? '').replace(/\s+/g, ' ').trim();
-  if (t.length > n) t = t.slice(0, n - 1) + '…';
-  return t.replace(/[#"<>{}[\]()|`;\\]/g, (c) => `#${c.charCodeAt(0)};`);
+// Wrap text into at most `max` lines of about `n` characters.
+function wrapText(t, n, max) {
+  const words = String(t ?? '').replace(/\s+/g, ' ').trim().split(' ');
+  const out = [''];
+  for (const w of words) {
+    const cur = out[out.length - 1];
+    if ((cur + ' ' + w).trim().length <= n) out[out.length - 1] = (cur + ' ' + w).trim();
+    else if (out.length < max) out.push(w.length > n ? w.slice(0, n - 1) + '…' : w);
+    else { out[out.length - 1] = cur.slice(0, n - 1).replace(/\s*$/, '') + '…'; break; }
+  }
+  return out;
 }
 
-// Flowchart for one turn: prompt -> steps in order, with dotted "read" and thick "changed" edges to files.
-export function mermaidFor(turn, ti) {
-  const id = (k, i) => `t${ti}${k}${i}`;
-  const lines = ['flowchart TD'];
-  const steps = groupSteps(turn.tools).slice(0, 14);
-  lines.push(`  ${id('p', 0)}(["${mermaidLabel(`You asked: ${turn.prompt || '(no prompt)'}`, 70)}"])`);
-  let prev = id('p', 0);
-  const files = [...touchedFiles(turn.tools).keys()];
-  const shownFiles = new Map();
-  const fileId = (f) => {
-    if (!shownFiles.has(f)) {
-      if (shownFiles.size >= 12) return null;
-      shownFiles.set(f, id('f', shownFiles.size));
-    }
-    return shownFiles.get(f);
+// Flowchart for one turn as inline SVG: your prompt, then each step in order down the left, and the files on the
+// right, with dashed lines for files read and solid ones for files changed. Built here, so the report needs no
+// JavaScript and no network.
+export function flowchartSvg(turn) {
+  const steps = groupSteps(turn.tools).slice(0, 16);
+  const files = [...touchedFiles(turn.tools).keys()].slice(0, 14);
+  const W = 860, SX = 16, SW = 430, FX = 560, FW = 284, LH = 16, PAD = 10, GAP = 22;
+  const parts = [];
+  const box = (x, y, w, lines, cls, rx = 8) => {
+    const h = lines.length * LH + PAD * 2 - 4;
+    parts.push(`<g class="${cls}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>` +
+      lines.map((l, i) => `<text x="${x + 12}" y="${y + PAD + 11 + i * LH}">${esc(l)}</text>`).join('') + '</g>');
+    return h;
   };
+  let y = 12;
+  const prompt = wrapText(`You asked: ${turn.prompt || "(no prompt)"}`, 54, 2);
+  const ph = box(SX, y, SW, prompt, 'fc-prompt', 18);
+  let prevBottom = y + ph;
+  y += ph + GAP;
+  const stepMid = [];
   steps.forEach((st, i) => {
-    const sid = id('s', i);
     const desc = [].concat(describeStep(st, UNICODE)).join('; ');
-    const cls = st.group === 'change' ? ':::change' : st.items.some((x) => x.ok === false) ? ':::fail' : '';
-    lines.push(`  ${sid}["${mermaidLabel(`${i + 1}. ${VERB[st.group]}: ${desc}`, 70)}"]${cls}`);
-    lines.push(`  ${prev} --> ${sid}`);
-    prev = sid;
+    const failed = st.items.some((x) => x.ok === false);
+    const cls = failed ? 'fc-step fc-fail' : st.group === 'change' ? 'fc-step fc-change' : 'fc-step';
+    const h = box(SX, y, SW, wrapText(`${i + 1}. ${VERB[st.group]}: ${desc}`, 54, 3), cls);
+    parts.push(`<path class="fc-flow" d="M${SX + SW / 2} ${prevBottom} V${y - 2}" marker-end="url(#fc-arrow)"/>`);
+    stepMid.push(y + h / 2);
+    prevBottom = y + h;
+    y += h + GAP;
+  });
+  const fileMid = new Map();
+  let fy = 12;
+  for (const f of files) {
+    const h = box(FX, fy, FW, wrapText(f, 38, 2), 'fc-file', 4);
+    fileMid.set(f, fy + h / 2);
+    fy += h + 10;
+  }
+  steps.forEach((st, i) => {
     const seen = new Set();
     for (const it of st.items) {
-      if (!files.includes(it.target) || seen.has(it.target)) continue;
+      if (!fileMid.has(it.target) || seen.has(it.target)) continue;
       seen.add(it.target);
-      const fid = fileId(it.target);
-      if (!fid) continue;
-      lines.push(it.kind === 'read' ? `  ${sid} -. reads .-> ${fid}` : `  ${sid} == changes ==> ${fid}`);
+      const y1 = stepMid[i], y2 = fileMid.get(it.target);
+      const cls = it.kind === 'read' ? 'fc-read' : 'fc-write';
+      parts.push(`<path class="${cls}" d="M${SX + SW} ${y1} C${SX + SW + 60} ${y1}, ${FX - 60} ${y2}, ${FX - 2} ${y2}"/>`);
     }
   });
-  for (const [f, fid] of shownFiles) lines.push(`  ${fid}[/"${mermaidLabel(f, 50)}"/]:::file`);
-  lines.push('  classDef change stroke-width:3px', '  classDef fail stroke-dasharray:4 3', '  classDef file font-size:12px');
-  return lines.join('\n');
+  const H = Math.max(y, fy) + 4;
+  return `<svg class="flow" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Flowchart of the steps Claude took">` +
+    '<defs><marker id="fc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z"/></marker></defs>' +
+    parts.join('') + '</svg>';
 }
 
-function turnSection(turn, ti, total, transcript) {
+function healthHtml(turn) {
+  if (!turn.tools.length) return '';
+  const h = healthOf(turn);
+  const item = (cls, label, text) => `<li class="${cls}"><span class="tag">${label}</span><span>${esc(text)}</span></li>`;
+  const tests = !h.tests ? item('h-none', '○ tests', 'not run in this turn')
+    : item(h.tests.passed ? 'h-ok' : 'h-bad', `${h.tests.passed ? '✔' : '✘'} tests`, `${h.tests.passed ? 'passed' : 'failing'} · ${h.tests.last.why || h.tests.last.detail}${h.tests.runs > 1 ? ` (${h.tests.runs} runs)` : ''}`);
+  const fixed = h.failedCommands - h.unresolved.filter((e) => e.kind === 'run').length;
+  const cmds = h.commands ? item(h.failedCommands > fixed ? 'h-bad' : 'h-ok', `${h.failedCommands > fixed ? '✘' : '✔'} commands`,
+    !h.failedCommands ? `${h.commands} ran, all worked` : `${h.commands} ran, ${h.failedCommands} failed${fixed ? `, ${fixed} fixed later` : ''}`) : '';
+  const files = item('h-none', '✎ files', h.changed ? `${h.changed} changed (+${h.add} −${h.del})` : 'none changed');
+  const open = h.unresolved.length ? item('h-warn', '▲ unresolved', h.unresolved.map((e) => e.why || e.detail || e.target || e.tool).join(' · '))
+    : item('h-ok', '✔ unresolved', 'none');
+  return `<h3>Health</h3><ul class="notes health">${tests}${cmds}${files}${open}</ul>`;
+}
+
+function diffHtml(turn, transcript, cwd) {
+  const diffs = diffsFor(transcript, turn.start, turn.end, cwd);
+  if (!diffs.length) return '';
+  const body = diffs.map((d) => {
+    const lines = diffLines(d, { full: true }).map((l) => {
+      const cls = /^@@/.test(l) ? 'd-hunk' : /^\s*\d+ \+ /.test(l) ? 'd-add' : /^\s*\d+ - /.test(l) ? 'd-del' : 'd-ctx';
+      return `<span class="${cls}">${esc(l)}</span>`;
+    }).join('\n');
+    return `<details><summary><code>${esc(d.file)}</code> <span class="add">+${d.add}</span> <span class="del">−${d.del}</span>${d.created ? ' · new file' : ''}</summary><pre class="diff">${lines}</pre></details>`;
+  }).join('');
+  return `<h3>Changed lines <small>from Claude's Edit and Write tools</small></h3>${body}`;
+}
+
+function turnSection(turn, ti, total, transcript, cwd) {
   const tx = transcript ? transcriptInfo(transcript, turn.start, turn.end) : null;
   const meta = [`${turn.tools.length} tool calls`];
   if (turn.end - turn.start >= 1000) meta.unshift(fmtDur(turn.end - turn.start));
@@ -81,10 +133,13 @@ function turnSection(turn, ti, total, transcript) {
 <section class="turn" id="turn-${ti + 1}">
   <header><h2>Turn ${ti + 1} <span>of ${total}</span></h2><p class="meta">${meta.map(esc).join(' · ')}</p></header>
   ${turn.prompt ? `<blockquote>${esc(turn.prompt)}</blockquote>` : ''}
-  ${turn.tools.length ? `<pre class="mermaid">${esc(mermaidFor(turn, ti))}</pre>` : ''}
+  ${inShort(turn) ? `<p class="short"><b>In short:</b> ${esc(inShort(turn))}</p>` : ''}
+  ${healthHtml(turn)}
+  ${turn.tools.length ? `<div class="flowwrap">${flowchartSvg(turn)}</div>` : ''}
   ${steps ? `<h3>What Claude did</h3><ol class="steps">${steps}</ol>` : '<p>Claude answered directly, without using any tools.</p>'}
   ${tree.length ? `<h3>Files <small>R read · E edited · N new</small></h3><pre class="tree">${esc(tree.join('\n'))}</pre>` : ''}
   ${fails.length ? `<h3 class="bad">Heads up: ${fails.length} failed</h3><ul>${fails.map((f) => `<li><code>${esc(f.tool)}</code> ${esc(f.detail || f.target || '')}</li>`).join('')}</ul>` : ''}
+  ${diffHtml(turn, transcript, cwd)}
   ${notes}${recap}
 </section>`;
 }
@@ -96,13 +151,13 @@ export function renderHtml(events, opts = {}) {
   const cwd = events.find((e) => e.cwd)?.cwd || '';
   const project = cwd.split(/[\\/]/).filter(Boolean).pop() || 'session';
   const body = turns.length
-    ? turns.map((t, i) => turnSection(t, i, turns.length, transcript)).join('\n')
+    ? turns.map((t, i) => turnSection(t, i, turns.length, transcript, cwd)).join('\n')
     : '<p>Nothing recorded for this session yet.</p>';
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>what did · session report</title>
 <style>
@@ -123,7 +178,25 @@ h3.bad { color: var(--bad); }
 blockquote { margin:12px 0; padding:8px 12px; border-left:3px solid var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent); border-radius:0 8px 8px 0; }
 pre { overflow-x:auto; font:13px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace; margin:0; }
 pre.tree { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
-pre.mermaid { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:12px; text-align:center; margin-top:12px; }
+.flowwrap { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px; margin-top:12px; overflow-x:auto; }
+svg.flow { display:block; min-width:640px; font:12.5px ui-monospace, "Cascadia Mono", Consolas, monospace; }
+svg.flow text { fill: var(--fg); }
+svg.flow rect { fill: var(--card); stroke: var(--line); stroke-width: 1.2; }
+svg.flow .fc-prompt rect { stroke: var(--accent); stroke-width: 1.6; }
+svg.flow .fc-change rect { stroke: var(--accent); stroke-width: 2.4; }
+svg.flow .fc-fail rect { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 5 3; }
+svg.flow .fc-file rect { fill: var(--bg); } svg.flow .fc-file text { fill: var(--muted); }
+svg.flow .fc-flow { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+svg.flow marker path { fill: var(--muted); }
+svg.flow .fc-read { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; fill: none; opacity: .7; }
+svg.flow .fc-write { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+.short { margin: 10px 0 0; }
+.health .tag { min-width: 8.5em; } .h-ok .tag { --c:#16a34a; } .h-bad .tag { --c: var(--bad); } .h-warn .tag { --c:#d97706; }
+details { border:1px solid var(--line); border-radius:8px; margin:6px 0; background:var(--bg); }
+details summary { cursor:pointer; padding:6px 10px; } details summary code { font-weight:600; }
+.add { color:#16a34a; } .del { color: var(--bad); }
+pre.diff { padding:8px 10px; border-top:1px solid var(--line); }
+pre.diff .d-add { color:#16a34a; } pre.diff .d-del { color: var(--bad); } pre.diff .d-hunk { color: var(--accent); } pre.diff .d-ctx { color: var(--muted); }
 ol.steps { padding-left: 1.4em; margin: 0; } ol.steps li { margin: 3px 0; overflow-wrap:anywhere; }
 ul.notes { list-style:none; padding:0; margin:0; display:grid; gap:6px; }
 li.note { display:grid; grid-template-columns: 7.5em 1fr; gap:10px; align-items:baseline; overflow-wrap:anywhere; }
@@ -145,11 +218,6 @@ footer { color:var(--muted); font-size:.85rem; text-align:center; margin-top: 32
   ${body}
   <footer>Generated by what did · type <code>wd</code> in Claude Code for the terminal version</footer>
 </main>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs';
-  const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
-  mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'neutral', flowchart: { useMaxWidth: true } });
-</script>
 </body>
 </html>
 `;
