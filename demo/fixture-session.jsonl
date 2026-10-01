@@ -1,0 +1,31 @@
+{"t":1790762395000,"ev":"start","source":"startup","cwd":"/home/dev/acme-app","transcript":"__TRANSCRIPT__"}
+{"t":1790762400000,"ev":"prompt","cwd":"/home/dev/acme-app","text":"Logged-in users keep getting bounced to /login even with a valid session. Find and fix it.","transcript":"__TRANSCRIPT__"}
+{"t":1790762402700,"ev":"pre","id":"toolu_demo001","tool":"Grep","kind":"search","target":"src","detail":"redirect.*login"}
+{"t":1790762403000,"ev":"tool","id":"toolu_demo001","tool":"Grep","kind":"search","target":"src","detail":"redirect.*login"}
+{"t":1790762403700,"ev":"pre","id":"toolu_demo002","tool":"Read","kind":"read","target":"src/routes.ts"}
+{"t":1790762404000,"ev":"tool","id":"toolu_demo002","tool":"Read","kind":"read","target":"src/routes.ts"}
+{"t":1790762404700,"ev":"pre","id":"toolu_demo003","tool":"Read","kind":"read","target":"src/auth/guard.ts"}
+{"t":1790762405000,"ev":"tool","id":"toolu_demo003","tool":"Read","kind":"read","target":"src/auth/guard.ts"}
+{"t":1790762407700,"ev":"pre","id":"toolu_demo004","tool":"Read","kind":"read","target":"src/auth/session.ts"}
+{"t":1790762408000,"ev":"tool","id":"toolu_demo004","tool":"Read","kind":"read","target":"src/auth/session.ts"}
+{"t":1790762408700,"ev":"pre","id":"toolu_demo005","tool":"Read","kind":"read","target":"src/config/auth.ts"}
+{"t":1790762409000,"ev":"tool","id":"toolu_demo005","tool":"Read","kind":"read","target":"src/config/auth.ts"}
+{"t":1790762414700,"ev":"pre","id":"toolu_demo006","tool":"Edit","kind":"edit","target":"src/auth/session.ts","add":3,"del":2}
+{"t":1790762415000,"ev":"tool","id":"toolu_demo006","tool":"Edit","kind":"edit","target":"src/auth/session.ts","add":3,"del":2}
+{"t":1790762421700,"ev":"pre","id":"toolu_demo007","tool":"Bash","kind":"run","detail":"npm test -- auth","why":"Run the auth tests"}
+{"t":1790762422000,"ev":"tool","id":"toolu_demo007","tool":"Bash","kind":"run","detail":"npm test -- auth","why":"Run the auth tests","ok":false}
+{"t":1790762425700,"ev":"pre","id":"toolu_demo008","tool":"Edit","kind":"edit","target":"test/helpers/session.ts","add":1,"del":1}
+{"t":1790762426000,"ev":"tool","id":"toolu_demo008","tool":"Edit","kind":"edit","target":"test/helpers/session.ts","add":1,"del":1}
+{"t":1790762432700,"ev":"pre","id":"toolu_demo009","tool":"Bash","kind":"run","detail":"npm test -- auth","why":"Re-run the auth tests"}
+{"t":1790762433000,"ev":"tool","id":"toolu_demo009","tool":"Bash","kind":"run","detail":"npm test -- auth","why":"Re-run the auth tests"}
+{"t":1790762437000,"ev":"stop"}
+{"t":1790762495000,"ev":"prompt","cwd":"/home/dev/acme-app","text":"Add a regression test so this never comes back.","transcript":"__TRANSCRIPT__"}
+{"t":1790762497700,"ev":"pre","id":"toolu_demo010","tool":"Glob","kind":"search","target":"test","detail":"test/**/*.test.ts"}
+{"t":1790762498000,"ev":"tool","id":"toolu_demo010","tool":"Glob","kind":"search","target":"test","detail":"test/**/*.test.ts"}
+{"t":1790762498700,"ev":"pre","id":"toolu_demo011","tool":"Read","kind":"read","target":"test/auth/guard.test.ts"}
+{"t":1790762499000,"ev":"tool","id":"toolu_demo011","tool":"Read","kind":"read","target":"test/auth/guard.test.ts"}
+{"t":1790762505700,"ev":"pre","id":"toolu_demo012","tool":"Write","kind":"write","target":"test/auth/session-expiry.test.ts","add":34,"created":true}
+{"t":1790762506000,"ev":"tool","id":"toolu_demo012","tool":"Write","kind":"write","target":"test/auth/session-expiry.test.ts","add":34,"created":true}
+{"t":1790762512700,"ev":"pre","id":"toolu_demo013","tool":"Bash","kind":"run","detail":"npm test -- session-expiry","why":"Run the new regression test"}
+{"t":1790762513000,"ev":"tool","id":"toolu_demo013","tool":"Bash","kind":"run","detail":"npm test -- session-expiry","why":"Run the new regression test"}
+{"t":1790762517000,"ev":"stop"}

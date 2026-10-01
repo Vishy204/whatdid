@@ -1,0 +1,15 @@
+{
+  "name": "whatdid",
+  "description": "what did: see what Claude Code did, in plain English, for zero tokens",
+  "owner": {
+    "name": "Vishy204"
+  },
+  "plugins": [
+    {
+      "name": "whatdid",
+      "source": "./",
+      "description": "See what Claude Code did, in plain English, for zero tokens. Type wd for a map of every file read, change made and command run; Claude narrates with typed notes (◆ why, ◇ found, ✔ done, ▲ risk).",
+      "displayName": "what did"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "repos": {
+    "ky": { "url": "https://github.com/sindresorhus/ky", "sha": "0d59458a0a58e1c3d7c6db0ab17ed5c7cd671e47", "lang": "TypeScript" },
+    "click": { "url": "https://github.com/pallets/click", "sha": "06b2a678741131fd577ce170e23e5ca0aeba0309", "lang": "Python" },
+    "commander": { "url": "https://github.com/tj/commander.js", "sha": "ba6d13ddb4243e5913367734f8c159089ffe7834", "lang": "JavaScript" }
+  },
+  "tasks": [
+    {
+      "id": "ky-retry-explain",
+      "repo": "ky",
+      "kind": "understand",
+      "prompt": "Where is retry logic implemented in this repo, and how is the delay between retries computed, including Retry-After handling? Do not modify files. Answer in at most 150 words and cite file paths.",
+      "check": { "type": "rubric", "all": ["retry-timing", "retry-after"] }
+    },
+    {
+      "id": "ky-timeout-explain",
+      "repo": "ky",
+      "kind": "understand",
+      "prompt": "How does ky implement request timeouts, and what error does the caller get when one fires? Do not modify files. Answer in at most 150 words and cite file paths.",
+      "check": { "type": "rubric", "all": ["TimeoutError"], "any": ["AbortController", "AbortSignal", "setTimeout"] }
+    },
+    {
+      "id": "ky-hooks-explain",
+      "repo": "ky",
+      "kind": "understand",
+      "prompt": "List the hook types ky supports and say briefly when each one runs. Do not modify files. Answer in at most 150 words and cite file paths.",
+      "check": { "type": "rubric", "all": ["beforeRequest", "beforeRetry", "afterResponse"] }
+    },
+    {
+      "id": "ky-fix-retry-after",
+      "repo": "ky",
+      "kind": "fix",
+      "prompt": "Users report that when a server responds with `Retry-After: 5`, ky waits only about half a second before retrying instead of 5 seconds. Find and fix the bug with a minimal change. Do not run npm install.",
+      "setup": [{ "file": "source/core/retry-timing.ts", "find": "let delay = Number(value) * 1000;", "replace": "let delay = Number(value) * 100;" }],
+      "check": { "type": "script", "cmd": "node", "file": "checks/ky-retry-after.mjs" }
+    },
+    {
+      "id": "click-parser-explain",
+      "repo": "click",
+      "kind": "understand",
+      "prompt": "How does click parse clustered short flags like `-abc` and long options like `--name=value`? Name the module and the class responsible. Do not modify files. Answer in at most 150 words and cite file paths.",
+      "check": { "type": "rubric", "all": ["parser"], "any": ["_OptionParser", "OptionParser"] }
+    },
+    {
+      "id": "click-context-explain",
+      "repo": "click",
+      "kind": "understand",
+      "prompt": "What is click's Context object, where is it defined, and how does state flow from a group to its subcommands? Do not modify files. Answer in at most 150 words and cite file paths.",
+      "check": { "type": "rubric", "all": ["Context", "core.py"] }
+    },
+    {
+      "id": "click-fix-split-opt",
+      "repo": "click",
+      "kind": "fix",
+      "prompt": "With a token_normalize_func set, long options like `--Name` are normalized wrongly: the option prefix comes out as '-' instead of '--'. Find and fix the bug with a minimal change. Do not install anything.",
+      "setup": [{ "file": "src/click/parser.py", "find": "        return opt[:2], opt[2:]", "replace": "        return opt[:1], opt[1:]" }],
+      "check": { "type": "script", "cmd": "python", "file": "checks/click-split-opt.py" }
+    },
+    {
+      "id": "commander-help-explain",
+      "repo": "commander",
+      "kind": "understand",
+      "prompt": "How does commander generate the text shown by `--help`? Which class and which methods build it? Do not modify files. Answer in at most 150 words and cite file paths.",
+      "check": { "type": "rubric", "all": ["help.js", "formatHelp"] }
+    },
+    {
+      "id": "commander-negate-explain",
+      "repo": "commander",
+      "kind": "understand",
+      "prompt": "How does commander handle a negatable option such as `--no-color`? Where is that detected, and what value does the option have when the flag is and is not passed? Do not modify files. Answer in at most 150 words and cite file paths.",
+      "check": { "type": "rubric", "all": ["negate"], "any": ["option.js", "command.js"] }
+    },
+    {
+      "id": "commander-fix-suggest",
+      "repo": "commander",
+      "kind": "fix",
+      "prompt": "\"Did you mean\" suggestions have stopped appearing: running a program with the unknown option `--hepl` no longer suggests `--help`. Find and fix the bug with a minimal change. Do not run npm install.",
+      "setup": [{ "file": "lib/suggestSimilar.js", "find": "if (distance < bestDistance) {", "replace": "if (distance > bestDistance) {" }],
+      "check": { "type": "script", "cmd": "node", "file": "checks/commander-suggest.mjs" }
+    }
+  ]
+}

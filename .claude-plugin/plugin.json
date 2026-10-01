@@ -1,0 +1,20 @@
+{
+  "name": "whatdid",
+  "displayName": "what did",
+  "version": "0.1.4",
+  "description": "See what Claude Code did, in plain English, for zero tokens. Type wd for a map of every file read, change made and command run; Claude narrates with typed notes (◆ why, ◇ found, ✔ done, ▲ risk).",
+  "author": {
+    "name": "Vishy204"
+  },
+  "license": "MIT",
+  "keywords": [
+    "explain",
+    "observability",
+    "replay",
+    "tokens",
+    "statusline",
+    "narration"
+  ],
+  "homepage": "https://github.com/Vishy204/whatdid",
+  "repository": "https://github.com/Vishy204/whatdid"
+}

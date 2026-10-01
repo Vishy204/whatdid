@@ -1,0 +1,48 @@
+{
+  "name": "whatdid",
+  "version": "0.1.4",
+  "description": "See what Claude Code did, in plain English, for zero tokens. Type wd.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Vishy204",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-code-plugin",
+    "ai-agents",
+    "observability",
+    "explain",
+    "session-replay",
+    "tokens",
+    "statusline",
+    "developer-tools"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "whatdid": "scripts/cli.mjs"
+  },
+  "scripts": {
+    "test": "node test/run.mjs",
+    "bench": "node bench/run.mjs",
+    "bench:dry": "node bench/run.mjs --dry-run",
+    "demo": "node demo/play.mjs"
+  },
+  "files": [
+    ".claude-plugin",
+    "hooks",
+    "scripts",
+    "skills",
+    "output-styles",
+    "assets/logo.svg"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vishy204/whatdid.git"
+  },
+  "homepage": "https://github.com/Vishy204/whatdid#readme",
+  "bugs": {
+    "url": "https://github.com/Vishy204/whatdid/issues"
+  }
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "auth",
+    "prompt": "How are users authenticated in this codebase? Name the files and functions that create and verify tokens. Do not modify anything.",
+    "expect": [],
+    "min": 0
+  },
+  {
+    "id": "data-flow",
+    "prompt": "Trace what happens when the main API receives a request: which files and functions handle it, in order? Do not modify anything.",
+    "expect": []
+  },
+  {
+    "id": "config",
+    "prompt": "Where does the app read its configuration and secrets, and which settings are required at startup? Do not modify anything.",
+    "expect": []
+  }
+]

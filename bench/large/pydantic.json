@@ -1,0 +1,9 @@
+{
+  "repo": { "name": "pydantic", "url": "https://github.com/pydantic/pydantic", "sha": "e2ac21dcd66fc682f8a50f6e179dbd95fa4b44ac", "lang": "Python + Rust" },
+  "questions": [
+    { "id": "pydantic-model-build", "prompt": "When a class subclasses BaseModel, how does pydantic build its validator? Trace the main classes and files from class creation to the core validator. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["ModelMetaclass", "_model_construction", "GenerateSchema", "SchemaValidator", "complete_model_class"], "min": 3 },
+    { "id": "pydantic-field-validator", "prompt": "How are @field_validator decorators collected from a model class and applied during validation? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["field_validator", "_decorators", "DecoratorInfos", "PydanticDescriptorProxy", "functional_validators"], "min": 3 },
+    { "id": "pydantic-json-schema", "prompt": "How does pydantic generate a JSON Schema for a model? Name the main class, function and file. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["GenerateJsonSchema", "json_schema.py", "model_json_schema"], "min": 2 },
+    { "id": "pydantic-core-errors", "prompt": "In the Rust core, how are validation errors collected and turned into the Python ValidationError? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["ValLineError", "ValidationError", "validation_exception.rs", "line_error.rs"], "min": 3 }
+  ]
+}

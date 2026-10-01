@@ -1,0 +1,9 @@
+{
+  "repo": { "name": "excalidraw", "url": "https://github.com/excalidraw/excalidraw", "sha": "1919728724a1b71af73cb7e6d2d1a418a1415b1c", "lang": "TypeScript" },
+  "questions": [
+    { "id": "excalidraw-undo", "prompt": "How does undo/redo work in this editor? Name the classes and files involved. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["history.ts", "History", "undoStack", "HistoryDelta", "store.ts"], "min": 3 },
+    { "id": "excalidraw-collab", "prompt": "How does live collaboration send scene updates to other users, and how is that data protected? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["Portal", "socket", "encryptData", "Collab", "encrypt"], "min": 3 },
+    { "id": "excalidraw-export", "prompt": "How does exporting the scene to a PNG image work? Name the main function and its file. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["exportToCanvas", "export.ts", "canvas", "png"], "min": 3 },
+    { "id": "excalidraw-hit-test", "prompt": "When the user clicks on the canvas, how does the editor work out which element was clicked? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["getElementAtPosition", "hitElementItself", "collision.ts", "App.tsx"], "min": 2 }
+  ]
+}

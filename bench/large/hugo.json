@@ -1,0 +1,9 @@
+{
+  "repo": { "name": "hugo", "url": "https://github.com/gohugoio/hugo", "sha": "ec69d0e64931715e490ae411cba2b305636d20e0", "lang": "Go" },
+  "questions": [
+    { "id": "hugo-build", "prompt": "What happens when Hugo builds a site? Name the entry point of a build and its main stages. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["HugoSites", "Build", "hugo_sites_build.go", "hugolib"], "min": 3 },
+    { "id": "hugo-markdown", "prompt": "How does Hugo convert Markdown to HTML? Name the package and the main type. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["goldmark", "convert.go", "goldmarkConverter", "markup"], "min": 3 },
+    { "id": "hugo-front-matter", "prompt": "How does Hugo split a content file into front matter and body, and decode YAML/TOML/JSON front matter? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["pageparser", "metadecoders", "Decoder", "pagelexer", "UnmarshalTo"], "min": 3 },
+    { "id": "hugo-image-resize", "prompt": "How does image processing like .Resize work, from the template call down to the pixels? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["imageResource", "Resize", "image.go", "resources/images", "Process"], "min": 3 }
+  ]
+}
