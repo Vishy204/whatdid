@@ -342,9 +342,10 @@ test('macOS Terminal gets 256 colours; everything else keeps 24-bit colour', asy
   assert.match(colorize(text, true), /38;2;/);
 });
 
-test('the macOS pane scripts compile (osacompile; macOS only)', { skip: process.platform !== 'darwin' }, async () => {
+test('the macOS Terminal pane script compiles (osacompile; macOS only)', { skip: process.platform !== 'darwin' }, async () => {
   const { paneCommand } = await import('../scripts/pane.mjs');
-  for (const env of [{ TERM_PROGRAM: 'Apple_Terminal' }, { TERM_PROGRAM: 'iTerm.app' }]) {
+  // Terminal ships with every Mac; iTerm2 is not on CI runners, so its script can't compile there.
+  for (const env of [{ TERM_PROGRAM: 'Apple_Terminal' }, { TERM_PROGRAM: 'ghostty' }]) {
     const { args } = paneCommand("/tmp/it's job.json", env, 'darwin', '/usr/local/bin/node');
     const out = path.join(os.tmpdir(), `wd-${Date.now()}.scpt`);
     const r = spawnSync('osacompile', ['-o', out, ...args], { encoding: 'utf8' });
