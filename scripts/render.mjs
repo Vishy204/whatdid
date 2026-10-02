@@ -633,20 +633,20 @@ export function renderHelp(opts = {}) {
   push('Type the short form as your whole message, or type /wd to pick from the menu.');
   push();
   const rows = [
-    ['wd', '/whatdid:wd', 'the last turn: files, commands, failures, answer'],
-    ['wd 3 · wd all', '/whatdid:wd 3', 'the last 3 turns · the whole session'],
-    ['wd replay', '/whatdid:wd-replay', 'every single step in order, with timings and why'],
-    ['wd diff', '/whatdid:wd-diff', 'the exact lines Claude changed in the last turn'],
-    ['wd map', '/whatdid:wd-map', 'map of this codebase: key files, symbols, who imports what'],
-    ['wd map src', '/whatdid:wd-map src', 'the map of one folder'],
-    ['wd html', '/whatdid:wd-html', 'the session as a web page with a flowchart'],
-    ['wd help', '/whatdid:wd-help', 'this card'],
+    ['wd', '/wd', 'the last turn: files, commands, failures, answer'],
+    ['wd 3 · wd all', '/wd 3', 'the last 3 turns · the whole session'],
+    ['wd replay', '/wd-replay', 'every single step in order, with timings and why'],
+    ['wd diff', '/wd-diff', 'the exact lines Claude changed in the last turn'],
+    ['wd map', '/wd-map', 'map of this codebase: key files, symbols, who imports what'],
+    ['wd map src', '/wd-map src', 'the map of one folder'],
+    ['wd html', '/wd-html', 'the session as a web page with a flowchart'],
+    ['wd help', '/wd-help', 'this card'],
   ];
   rows.forEach(([k, c, v]) => push(`  ${k.padEnd(14)} ${c.padEnd(20)} ${v}`));
   push();
   push('In the colour pane: ↑↓ or the wheel scroll, e or a click on "+N more" shows everything, q closes.');
-  push('Uses tokens: /whatdid:explain (Claude explains the map in plain English).');
-  push('Settings: /whatdid:setup (statusline, pane, notify, auto card, automap).');
+  push('Uses tokens: /wd-explain (Claude explains the map in plain English).');
+  push('Settings: /wd-setup (statusline, pane, notify, auto card, automap).');
   push('Tip: /output-style whatdid makes Claude narrate: ◆ why  ◇ found  ✔ done  ▲ risk  ◌ need …');
   return close();
 }

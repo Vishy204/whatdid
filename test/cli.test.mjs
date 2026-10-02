@@ -189,3 +189,11 @@ test('bench/large suites pin a public repo and grade every question', async () =
   }
   assert.deepEqual(local.loadQuestions(path.join(ROOT, 'bench', 'local-questions.example.json')).repo, undefined);
 });
+
+test('bench/local.mjs never records a run that did not reach the model', async () => {
+  const { isRealRun } = await import('../bench/local.mjs');
+  assert.equal(isRealRun({ total_input_tokens: 0, output_tokens: 0, is_error: false }), false);
+  assert.equal(isRealRun({ total_input_tokens: 5000, output_tokens: 300, is_error: true }), false);
+  assert.equal(isRealRun({ total_input_tokens: 5000, output_tokens: 300, is_error: false }), true);
+  assert.equal(isRealRun(null), false);
+});

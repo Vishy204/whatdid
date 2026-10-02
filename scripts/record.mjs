@@ -70,7 +70,7 @@ function main() {
       break;
 
     case 'UserPromptExpansion': {
-      // The /whatdid:wd… commands: listed with descriptions in Claude Code's / menu, answered here for free.
+      // The /wd… commands: listed with descriptions in Claude Code's / menu, answered here for free.
       const name = String(h.command_name || '').replace(/^whatdid:/, '');
       const sub = { wd: [], 'wd-replay': ['replay'], 'wd-diff': ['diff'], 'wd-map': ['map'], 'wd-html': ['html'], 'wd-help': ['help'] }[name];
       if (!sub) break;
@@ -129,7 +129,7 @@ function main() {
   }
 }
 
-// Answers wd and /whatdid:wd… without calling the model: a colour pane when the terminal can split, else text.
+// Answers wd and /wd… without calling the model: a colour pane when the terminal can split, else text.
 function answerWd(opts, h, sid, cwd) {
   const file = sessionFile(sid);
   const view = { file, cwd, transcript: h.transcript_path, opts };

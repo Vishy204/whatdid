@@ -143,7 +143,7 @@ test('ascii mode swaps note glyphs for plain characters', () => {
 
 test('help card lists every wd variant', () => {
   const text = renderHelp();
-  for (const v of ['wd 3', 'wd all', 'wd replay', 'wd html', 'wd map', 'wd help', '/whatdid:wd-replay', '/whatdid:wd-map']) assert.ok(text.includes(v), v);
+  for (const v of ['wd 3', 'wd all', 'wd replay', 'wd html', 'wd map', 'wd help', '/wd-replay', '/wd-map']) assert.ok(text.includes(v), v);
   assert.equal(render([], { help: true }), text);
 });
 

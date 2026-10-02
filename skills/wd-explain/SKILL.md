@@ -1,6 +1,6 @@
 ---
-name: explain
-description: Uses tokens · Claude reads the what did map of this session and explains it in plain English, for someone who is not a programmer. Use when the user asks "what did you do", "what just happened", "explain that", or seems lost. For the free map, type /whatdid:wd.
+name: wd-explain
+description: Uses tokens · Claude reads the what did map of this session and explains it in plain English, for someone who is not a programmer. Use when the user asks "what did you do", "what just happened", "explain that", or seems lost. For the free map, type /wd.
 ---
 
 Here is the what did record of this session. A script built it from hook data, with no model involved:

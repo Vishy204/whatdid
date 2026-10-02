@@ -1,6 +1,6 @@
 {
   "name": "whatdid",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "See what Claude Code did, in plain English, for zero tokens. Type wd.",
   "type": "module",
   "license": "MIT",

@@ -13,7 +13,7 @@ export function config() {
 
 // Opt-in: put the repo map into Claude's context at session start (one cached ~2k-token block, no extra turn).
 // Opt-in: print a one-line whatdid card after every turn (zero tokens, shown to the user only).
-// On by default: it's how people discover `wd`. `/whatdid:setup auto off` stores autoCard: false.
+// On by default: it's how people discover `wd`. `/wd-setup auto off` stores autoCard: false.
 export function autoCardEnabled() {
   const env = process.env.WHATDID_AUTO;
   return env ? env === '1' : config().autoCard !== false;
@@ -73,7 +73,7 @@ export function takeWelcome() {
 
 // Auto-map: false (the default), true (every session) or 'auto' (only above AUTOMAP_MIN_TOKENS of source).
 // It's off by default because it's the one feature that adds tokens to every session, and its savings vary
-// by codebase: bench/results has one private codebase at -25% cost, excalidraw/hugo about even, pydantic +24%.
+// by codebase; per-repo numbers are in bench/results.
 export const AUTOMAP_MIN_TOKENS = Number(process.env.WHATDID_AUTOMAP_MIN) || 400_000;
 export function autoMapMode() {
   const env = process.env.WHATDID_AUTOMAP;

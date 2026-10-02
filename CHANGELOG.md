@@ -2,6 +2,13 @@
 
 > The project was renamed from glassbox to **what did** (package and command: `whatdid`) before its first release. "Glassbox" is an existing session-replay company and is used by 600+ GitHub repos. The trigger is now `wd`.
 
+## 0.1.7 — 2026-10-02
+
+### Changed
+- **Short command names.** Type `/wd`, `/wd-map`, `/wd-diff`, `/wd-replay`, `/wd-html` or `/wd-help`; the `whatdid:` prefix is optional. `setup` and `explain` are now `/wd-setup` and `/wd-explain`, so every command starts with `/wd`.
+- **Auto-map benchmark rerun** on five large public repos (fastapi, pydantic, excalidraw, hugo, tokio), three runs per question: 17% cheaper in total, 60/60 answers correct with auto-map vs 57/60 without. Results in `bench/results/2026-10-01-haiku-large-public-r3.md`.
+- `bench/local.mjs` stops instead of recording runs that never reached the model (usage limit, network, auth), so a hit limit can't put zeros into results.
+
 ## 0.1.6 — 2026-10-01
 
 ### Changed

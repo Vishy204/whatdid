@@ -1,0 +1,9 @@
+{
+  "repo": { "name": "fastapi", "url": "https://github.com/fastapi/fastapi", "sha": "33d411dbc3236275dd64d200bfe18d5d60a49b2e", "lang": "Python" },
+  "questions": [
+    { "id": "fastapi-depends", "prompt": "How does FastAPI resolve Depends() dependencies for an endpoint, including nested ones? Name the main functions and files. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["solve_dependencies", "get_dependant", "Dependant", "dependencies/utils.py", "models.py"], "min": 3 },
+    { "id": "fastapi-openapi", "prompt": "How does FastAPI generate the OpenAPI schema served at /openapi.json? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["get_openapi", "openapi/utils.py", "applications.py", "openapi"], "min": 3 },
+    { "id": "fastapi-request-handler", "prompt": "When a request hits a path operation, which code validates the body and parameters, calls the endpoint and serializes the response? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["get_request_handler", "routing.py", "APIRoute", "serialize_response", "solve_dependencies"], "min": 3 },
+    { "id": "fastapi-errors", "prompt": "How are HTTPException and request validation errors turned into JSON responses? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["http_exception_handler", "request_validation_exception_handler", "exception_handlers.py", "RequestValidationError", "exceptions.py"], "min": 3 }
+  ]
+}

@@ -55,13 +55,15 @@ Type any of these as your whole message, or type **`/wd`** and pick one from the
 
 | Type | Or pick | You get |
 |---|---|---|
-| **`wd`** | `/whatdid:wd` | The last turn: what you asked, a one-line summary, Claude's answer, every step, files, connections, failures |
-| `wd replay` | `/whatdid:wd-replay` | Every step in order, with timings and Claude's reason for each |
-| `wd diff` | `/whatdid:wd-diff` | The exact lines Claude changed in the last turn, file by file, with line numbers |
-| `wd html` | `/whatdid:wd-html` | The session as a web page with a flowchart, opened in your browser |
-| `wd map` | `/whatdid:wd-map` | A ~2k-token map of the codebase: key files, symbols, who imports what. `wd map src` maps one folder |
-| `wd 3` · `wd all` | `/whatdid:wd 3` | The last 3 turns · the whole session |
-| `wd help` | `/whatdid:wd-help` | All of the above |
+| **`wd`** | `/wd` | The last turn: what you asked, a one-line summary, Claude's answer, every step, files, connections, failures |
+| `wd replay` | `/wd-replay` | Every step in order, with timings and Claude's reason for each |
+| `wd diff` | `/wd-diff` | The exact lines Claude changed in the last turn, file by file, with line numbers |
+| `wd html` | `/wd-html` | The session as a web page with a flowchart, opened in your browser |
+| `wd map` | `/wd-map` | A ~2k-token map of the codebase: key files, symbols, who imports what. `wd map src` maps one folder |
+| `wd 3` · `wd all` | `/wd 3` | The last 3 turns · the whole session |
+| `wd help` | `/wd-help` | All of the above |
+
+The menu may show the long name (`/whatdid:wd-map`); the short `/wd-map` does the same thing.
 
 `wd why did you touch auth.ts` still goes to Claude as a normal question, because what did only answers the words it knows.
 
@@ -114,7 +116,7 @@ Type any of these as your whole message, or type **`/wd`** and pick one from the
 | **Along the way** | One key line from each message Claude wrote while working, tagged with the step it led to, e.g. `(→ step 3)` |
 | **Claude's notes · Recap** | With the narration style on: Claude's typed notes and its three-line recap |
 
-**You don't even have to type it.** After every turn where Claude used tools, a one-line card appears on its own (hide it with `/whatdid:setup auto off`):
+**You don't even have to type it.** After every turn where Claude used tools, a one-line card appears on its own (hide it with `/wd-setup auto off`):
 
 ```text
 ◆ what did · 9 steps · 37s · changed session.ts +3 −2, +1 file · ✔ npm test -- auth · 1 failed earlier · type wd
@@ -123,7 +125,7 @@ Type any of these as your whole message, or type **`/wd`** and pick one from the
 
 ### The colour pane
 
-In Windows Terminal, tmux, WezTerm and iTerm2, `wd` opens in a full-width pane below Claude Code, in colour. Each section gets its own coloured heading, steps are coloured by kind (looked at, changed, ran), and added and removed lines are green and red. A new `wd` replaces the old pane. Other terminals show the same map inside Claude Code, and `/whatdid:setup pane off` does that everywhere.
+In Windows Terminal, tmux, WezTerm and iTerm2, `wd` opens in a full-width pane below Claude Code, in colour. Each section gets its own coloured heading, steps are coloured by kind (looked at, changed, ran), and added and removed lines are green and red. A new `wd` replaces the old pane. Other terminals show the same map inside Claude Code, and `/wd-setup pane off` does that everywhere.
 
 | Key | In the pane |
 |---|---|
@@ -131,23 +133,23 @@ In Windows Terminal, tmux, WezTerm and iTerm2, `wd` opens in a full-width pane b
 | Click a "+3 more" line · `e` | Show every step, command and file (`e` again to summarise) |
 | `q` · `Esc` · `Enter` | Close |
 
-**It taps you on the shoulder.** When a turn takes 20 seconds or more, your terminal pops a desktop notification with the same summary, so you can switch windows while Claude works. It works in Windows Terminal, iTerm2, WezTerm, Ghostty and kitty; `/whatdid:setup notify off` turns it off.
+**It taps you on the shoulder.** When a turn takes 20 seconds or more, your terminal pops a desktop notification with the same summary, so you can switch windows while Claude works. It works in Windows Terminal, iTerm2, WezTerm, Ghostty and kitty; `/wd-setup notify off` turns it off.
 
 <details>
 <summary><b>More: live statusline, HTML report, terminal command, settings</b></summary>
 
-- **Live statusline:** `/whatdid:setup` adds a line at the bottom of the terminal showing Claude's latest note as it works (`◇ found expiresAt is seconds… · step 6 · editing session.ts`). If you already have a statusline, such as GSD's, it stays and shows first.
+- **Live statusline:** `/wd-setup` adds a line at the bottom of the terminal showing Claude's latest note as it works (`◇ found expiresAt is seconds… · step 6 · editing session.ts`). If you already have a statusline, such as GSD's, it stays and shows first.
 - **HTML report:** `wd html` writes one self-contained page. At the top, a list of every prompt, newest first, jumps straight to that turn. The three newest turns are open; click any older one to open it. Each turn has its health, a flowchart of every step and file (boxes show the full text, and hovering shows it too), the changed lines, the file tree and every note as a coloured badge. It runs no JavaScript and loads nothing from the network, so it works offline.
 
   <img src="assets/report.png" alt="what did HTML report with a flowchart of the steps" width="640">
 
 - **Outside Claude Code:** run `whatdid` in any project folder to see its latest session, in colour. `whatdid replay`, `whatdid doctor` and `whatdid map` also work.
 - **A folder of many projects:** `wd map` in, say, your home folder lists the projects there instead of mixing them into one map.
-- **Settings**, all with `/whatdid:setup`:
+- **Settings**, all with `/wd-setup`:
 
   | Setting | What it does |
   |---|---|
-  | `/whatdid:setup` | Adds the live statusline |
+  | `/wd-setup` | Adds the live statusline |
   | `pane on` · `pane off` | Colour pane below Claude Code, or text inside it |
   | `auto on` · `auto off` | The one-line card after every turn |
   | `notify on` · `notify off` | The desktop notification after long turns |
@@ -200,7 +202,7 @@ flowchart LR
   V --> O["colour pane below Claude Code — the model is never called"]
 ```
 
-- **Zero tokens:** Claude Code lets a hook block a prompt, or a `/` command, and show a message instead. what did answers `wd` and the `/whatdid:wd…` commands that way, so nothing goes to the API. It then opens the colour pane, or prints the map when the terminal can't split.
+- **Zero tokens:** Claude Code lets a hook block a prompt, or a `/` command, and show a message instead. what did answers `wd` and the `/wd…` commands that way, so nothing goes to the API. It then opens the colour pane, or prints the map when the terminal can't split.
 - **Never in Claude's way:** recording hooks run asynchronously and always exit 0, and a corrupt log never breaks a session.
 - **Private:** everything stays on your machine. Logs hold paths, line counts, your prompts and commands with secrets redacted, never file contents.
 - **Repo map:** regex symbol extraction for JS/TS, Python, Go, Rust and Java, import resolution, PageRank ranking, and line numbers in big files. A 1.9M-token codebase becomes a ~2k-token map in about 200 ms. Optionally preloaded into every session (see [Auto-map](#auto-map)).
@@ -211,11 +213,11 @@ Almost nothing. Every view is built by local scripts from the hook log, so the m
 
 | Feature | Tokens |
 |---|---|
-| `wd`, `wd replay`, `wd diff`, `wd 3`, `wd all`, `wd map`, `wd html`, `wd help`, and the `/whatdid:wd…` commands | **0**: a hook answers, and the prompt never reaches the model |
+| `wd`, `wd replay`, `wd diff`, `wd 3`, `wd all`, `wd map`, `wd html`, `wd help`, and the `/wd…` commands | **0**: a hook answers, and the prompt never reaches the model |
 | Colour pane, one-line card after each turn, desktop notification, live statusline, welcome hint | **0**: drawn by hooks and local scripts |
 | Recording every step | **0**: hooks write to `~/.whatdid` in the background |
 | Having the plugin installed | ~200 tokens per session: the descriptions of the skills Claude can use (the `/wd` commands add none) |
-| `/whatdid:explain` | A normal Claude reply: Claude reads the map and explains it in plain English. `wd` shows the same map for free |
+| `/wd-explain` | A normal Claude reply: Claude reads the map and explains it in plain English. `wd` shows the same map for free |
 | Narration style (`/output-style whatdid`, optional) | ~700 tokens of instructions, plus one short line per step. It also tells Claude to drop filler |
 | **Auto-map** (optional, off by default) | **~2k tokens at the start of every session** |
 
@@ -227,23 +229,25 @@ Claude Code caches the start of a session, so the fixed costs above are billed i
 
 **How it helps.** Claude knows where things live before it reads anything. Instead of grepping around and reading a 4,000-line file top to bottom, it can open `session.ts` at line 240 and read the 100 lines that matter. That matters most on big codebases that don't fit in Claude's head.
 
-**What it costs.** ~2k tokens per session, about as much as Claude reading one medium-sized file. Whether it pays that back depends on the codebase. We tested it read-only on four large codebases, with four architecture questions each, run twice with and twice without it, on haiku:
+**What it costs.** ~2k tokens per session, about as much as Claude reading one medium-sized file. We tested whether it pays that back on five large open-source codebases. Each got four architecture questions, asked three times with and three times without auto-map, read-only, on haiku:
 
-| Codebase | Language | Source | Correct with auto-map | Cost vs. without |
+| Codebase | Language | Source | Correct without → with | Cost with auto-map |
 |---|---|---|---|---|
-| a private product | Python + TypeScript | ~670k tokens | 8/8 | **−25%** |
-| [excalidraw](https://github.com/excalidraw/excalidraw) | TypeScript | ~1.5M tokens | 8/8 | −1% |
-| [hugo](https://github.com/gohugoio/hugo) | Go | ~1.6M tokens | 8/8 | 0% |
-| [pydantic](https://github.com/pydantic/pydantic) | Python + Rust | ~1.9M tokens | 8/8 | +24% |
+| [fastapi](https://github.com/fastapi/fastapi) | Python | ~0.9M tokens | 11/12 → 12/12 | **−43%** |
+| [pydantic](https://github.com/pydantic/pydantic) | Python + Rust | ~1.9M tokens | 12/12 → 12/12 | **−23%** |
+| [excalidraw](https://github.com/excalidraw/excalidraw) | TypeScript | ~1.5M tokens | 11/12 → 12/12 | **−17%** |
+| [hugo](https://github.com/gohugoio/hugo) | Go | ~1.6M tokens | 11/12 → 12/12 | **−16%** |
+| [tokio](https://github.com/tokio-rs/tokio) | Rust | ~1.5M tokens | 12/12 → 12/12 | +21% |
+| **All five** | | | **57/60 → 60/60** | **−17%** (input tokens −21%) |
 
-The biggest win was on the private codebase. Our guess is that Claude already knows its way around famous public repos, so a map helps less there. Per-question numbers are in [`bench/results`](bench/results).
+Cost is what Claude Code reports for each run (`total_cost_usd`), using the median of the three runs per question. Single runs vary a lot (the same question can take 9 turns or 26), so the total across all five is the number to trust. Per-question results are in [`bench/results`](bench/results/2026-10-01-haiku-large-public-r3.md).
 
 **Turn it on:**
 
 ```text
-/whatdid:setup automap auto    only for big codebases (~400k+ tokens of source)
-/whatdid:setup automap on      every session
-/whatdid:setup automap off     back to the default
+/wd-setup automap auto    only for big codebases (~400k+ tokens of source)
+/wd-setup automap on      every session
+/wd-setup automap off     back to the default
 ```
 
 **Measure it on your own repo.** Write a few questions and run `node bench/local.mjs <repo> <questions.json>`. It's read-only (Claude can only Read, Grep and Glob) and confirms that git status is unchanged afterwards. The public suites are pinned to exact commits, so anyone can rerun them: `node bench/local.mjs bench/large/hugo.json`.
@@ -289,9 +293,5 @@ python assets/src/make_gifs.py    # regenerate the README GIFs from the real ren
 ```
 
 Issues and PRs are welcome. Please keep it zero-dependency and working on Windows.
-
-<p align="center">
-  <a href="https://star-history.com/#Vishy204/whatdid&Date"><img src="https://api.star-history.com/svg?repos=Vishy204/whatdid&type=Date" alt="Star history" width="560"></a>
-</p>
 
 <p align="center"><sub>MIT © Vishy204 · Not affiliated with Anthropic. Claude and Claude Code are trademarks of Anthropic.</sub></p>

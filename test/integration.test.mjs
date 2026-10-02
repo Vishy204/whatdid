@@ -172,16 +172,17 @@ test('a long turn ends with a desktop notification through terminalSequence', ()
   assert.equal(JSON.parse(hook({ hook_event_name: 'Stop' }, { WHATDID_NOTIFY_MIN_MS: '3600000' })).terminalSequence, undefined, 'short turns stay quiet');
 });
 
-test('/whatdid:wd… commands are answered by the expansion hook, never by the model', () => {
+test('/wd… commands are answered by the expansion hook, never by the model', () => {
   const expand = (command_name, args = []) => spawnSync(process.execPath, [path.join(ROOT, 'scripts/record.mjs')], {
     input: JSON.stringify({ session_id: 'x', cwd: REPO, hook_event_name: 'UserPromptExpansion', command_name, arguments: args, expansion_type: 'skill' }),
     env: { ...process.env, WHATDID_HOME: path.join(TMP, 'home') },
     encoding: 'utf8',
   }).stdout;
-  assert.match(JSON.parse(expand('whatdid:wd-help')).reason, /\/whatdid:wd-replay/);
+  assert.match(JSON.parse(expand('whatdid:wd-help')).reason, /\/wd-replay/);
   assert.match(JSON.parse(expand('whatdid:wd-map', ['src'])).reason, /isExpired/);
   assert.equal(JSON.parse(expand('whatdid:wd')).decision, 'block');
-  assert.equal(expand('whatdid:explain'), '', 'the paid explain skill still reaches Claude');
+  assert.match(JSON.parse(expand('wd-map', ['src'])).reason, /isExpired/, 'the bare /wd-map name works too');
+  assert.equal(expand('whatdid:wd-explain'), '', 'the paid explain skill still reaches Claude');
   assert.equal(expand('someone-else:wd-x'), '');
   for (const f of ['wd', 'wd-replay', 'wd-map', 'wd-html', 'wd-help']) {
     assert.match(fs.readFileSync(path.join(ROOT, 'skills', f, 'SKILL.md'), 'utf8'), /disable-model-invocation: true/, f);

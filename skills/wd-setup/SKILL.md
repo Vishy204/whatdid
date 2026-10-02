@@ -1,5 +1,5 @@
 ---
-name: setup
+name: wd-setup
 description: Configure what did. Default installs the live statusline. "auto off" hides the one-line summary shown after every turn ("auto on" brings it back), "pane off|on" chooses whether wd opens in a colour pane below Claude Code, "notify off|on" turns the desktop notification after long turns off or on, "automap on|off|auto" controls preloading the ~2k-token repo map into every session (off by default; auto does it only for large codebases), "uninstall" removes the statusline.
 disable-model-invocation: true
 argument-hint: "[auto on|off | pane on|off | notify on|off | automap on|off|auto | uninstall]"

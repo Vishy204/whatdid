@@ -51,6 +51,8 @@ export function readOnlyArgs(q, condition, o) {
   return args;
 }
 
+export const isRealRun = (m) => !!m && !m.is_error && m.total_input_tokens > 0 && m.output_tokens > 0;
+
 export function grade(q, answer) {
   if (!q.expect || !q.expect.length) return { pass: null, hits: '' };
   const hits = q.expect.filter((k) => answer.toLowerCase().includes(String(k).toLowerCase()));
@@ -88,8 +90,20 @@ function main() {
       for (const condition of o.conditions) {
         const home = fs.mkdtempSync(path.join(os.tmpdir(), 'whatdid-local-'));
         const env = { ...process.env, WHATDID_HOME: home, WHATDID_AUTOMAP: condition === 'whatdid-automap' ? '1' : '0', WHATDID_AUTO: '0', WHATDID_WELCOME: '0' };
-        const { json } = runClaude(bin, readOnlyArgs(q, condition, o), o.repo, env);
-        const m = metricsOf(json);
+        // A run that used no tokens never reached the model (usage limit, network, auth). Retry, then stop:
+        // recording it would put fake zeros into the results.
+        let json, m;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          ({ json } = runClaude(bin, readOnlyArgs(q, condition, o), o.repo, env));
+          m = metricsOf(json);
+          if (isRealRun(m)) break;
+          console.log(`  ${q.id} · ${condition}: no answer from Claude (${String(json?.result || 'no output').slice(0, 80)}), attempt ${attempt}/3`);
+          if (attempt < 3) spawnSync(process.execPath, ['-e', 'setTimeout(()=>{}, 30000)']);
+        }
+        if (!isRealRun(m)) {
+          console.error(`\nStopped: Claude returned nothing three times in a row (usage limit?). ${results.length} completed runs were not saved.`);
+          return 1;
+        }
         const g = grade(q, String(json?.result || ''));
         const act = whatdidActivity(home);
         results.push({ task: q.id, condition, rep, ...m, pass: g.pass ?? !m.is_error, hits: g.hits, whatdid_tool_calls: act.tools });

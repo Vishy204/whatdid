@@ -7,9 +7,9 @@ Please report security issues privately through GitHub's **Report a vulnerabilit
 ## What what did does on your machine
 
 - **Reads:** Claude Code's hook events, Claude's transcript for the current session (for notes, token counts and, with `wd diff`, the lines Claude changed), and your project's source files when you ask for a map.
-- **Writes:** only inside `~/.whatdid/` (session logs, config, reports, the statusline script). On macOS and Linux the folder and everything in it (logs, config, reports, map cache, statusline script) is private to you (`0700`, files `0600`), and folders made by older versions are tightened at the next session start. The one exception is `/whatdid:setup`, which adds a statusline entry to `~/.claude/settings.json` after making a backup.
+- **Writes:** only inside `~/.whatdid/` (session logs, config, reports, the statusline script). On macOS and Linux the folder and everything in it (logs, config, reports, map cache, statusline script) is private to you (`0700`, files `0600`), and folders made by older versions are tightened at the next session start. The one exception is `/wd-setup`, which adds a statusline entry to `~/.claude/settings.json` after making a backup.
 - **Network:** none. The HTML report is fully self-contained: its flowchart is SVG drawn by what did, and a Content Security Policy blocks scripts and every network request.
-- **Model calls:** none, except `/whatdid:explain` and the optional auto-map, which are documented in the README.
+- **Model calls:** none, except `/wd-explain` and the optional auto-map, which are documented in the README.
 
 ## What is logged
 

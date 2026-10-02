@@ -52,7 +52,7 @@ function install(argv) {
   if (add.status !== 0) return add.status || 1;
   const inst = claude(['plugin', 'install', PLUGIN]);
   if (inst.status !== 0) return inst.status || 1;
-  console.log('\nInstalled. Restart Claude Code, do something, then type wd to see what it did.\nOptional live statusline: run /whatdid:setup inside Claude Code.');
+  console.log('\nInstalled. Restart Claude Code, do something, then type wd to see what it did.\nOptional live statusline: run /wd-setup inside Claude Code.');
   return 0;
 }
 
@@ -110,7 +110,7 @@ export function doctorChecks({ cwd = process.cwd() } = {}) {
   const sl = settings.statusLine?.command || '';
   checks.push(sl.includes('statusline.mjs') && sl.includes('.whatdid')
     ? ['ok', 'Statusline installed']
-    : ['warn', `Statusline not installed${sl ? ' (another statusline is active; whatdid keeps it)' : ''}; optional: run /whatdid:setup in Claude Code`]);
+    : ['warn', `Statusline not installed${sl ? ' (another statusline is active; whatdid keeps it)' : ''}; optional: run /wd-setup in Claude Code`]);
   return checks;
 }
 

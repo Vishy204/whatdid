@@ -1,0 +1,9 @@
+{
+  "repo": { "name": "tokio", "url": "https://github.com/tokio-rs/tokio", "sha": "e6e84a4d4a5e11d5d0f419444a634ee07203b3e5", "lang": "Rust" },
+  "questions": [
+    { "id": "tokio-work-stealing", "prompt": "How does the multi-threaded runtime let an idle worker take tasks from a busy one? Name the files and functions involved. Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["steal_into", "queue.rs", "worker.rs", "lifo_slot", "multi_thread"], "min": 3 },
+    { "id": "tokio-sleep", "prompt": "What happens when you await tokio::time::sleep? How is the timer registered and fired? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["Sleep", "sleep.rs", "TimerEntry", "entry.rs", "Wheel", "wheel"], "min": 3 },
+    { "id": "tokio-spawn", "prompt": "How does tokio::spawn turn a future into a running task, and what does the JoinHandle point at? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["spawn.rs", "JoinHandle", "runtime/task", "harness", "raw"], "min": 3 },
+    { "id": "tokio-mpsc", "prompt": "How are tokio's mpsc channels implemented internally, and how does the bounded channel apply backpressure? Do not modify anything. Answer in at most 150 words and cite file paths.", "expect": ["chan.rs", "block.rs", "Tx", "Rx", "semaphore", "bounded"], "min": 3 }
+  ]
+}
