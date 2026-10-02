@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendEvent, home, PRIVATE_DIR, PRIVATE_FILE, tightenPermissions, autoMapMode, AUTOMAP_MIN_TOKENS, autoCardEnabled, notifyEnabled, notifySequence, NOTIFY_MIN_MS, takeWelcome, redact, clip, summarizeTool, readEvents, sessionFile } from './lib.mjs';
+import { appendEvent, home, PRIVATE_DIR, PRIVATE_FILE, tightenPermissions, autoMapMode, AUTOMAP_MIN_TOKENS, autoCardEnabled, notifyEnabled, notifySequence, NOTIFY_MIN_MS, takeWelcome, redact, clip, summarizeTool, readEvents, sessionFile, stripControl } from './lib.mjs';
 import { renderCard, parseArgs, viewText } from './render.mjs';
 import { openPane } from './pane.mjs';
 import { writeReport, openInBrowser } from './html.mjs';
@@ -110,7 +110,7 @@ function main() {
       appendEvent(sid, { t, ev: 'stop' });
       {
         const events = autoCardEnabled() || notifyEnabled() ? readEvents(sessionFile(sid)) : [];
-        const card = events.length ? renderCard(events, { transcript: h.transcript_path }) : '';
+        const card = events.length ? stripControl(renderCard(events, { transcript: h.transcript_path })) : '';
         if (!card) break;
         const out = {};
         if (autoCardEnabled()) out.systemMessage = card;
@@ -130,7 +130,12 @@ function main() {
 }
 
 // Answers wd and /wd… without calling the model: a colour pane when the terminal can split, else text.
+// The text holds file names, commands and Claude's words, so terminal escape sequences are stripped first.
 function answerWd(opts, h, sid, cwd) {
+  return stripControl(answerText(opts, h, sid, cwd));
+}
+
+function answerText(opts, h, sid, cwd) {
   const file = sessionFile(sid);
   const view = { file, cwd, transcript: h.transcript_path, opts };
   if (opts.html) {

@@ -2,6 +2,11 @@
 
 > The project was renamed from glassbox to **what did** (package and command: `whatdid`) before its first release. "Glassbox" is an existing session-replay company and is used by 600+ GitHub repos. The trigger is now `wd`.
 
+## 0.1.8 — 2026-10-02
+
+### Security
+- `wd` shown inside Claude Code (terminals without the colour pane) and the one-line card after each turn now strip terminal control characters, like the colour pane and statusline already did. A file name or command crafted with an escape sequence can no longer reach your terminal through them.
+
 ## 0.1.7 — 2026-10-02
 
 ### Changed

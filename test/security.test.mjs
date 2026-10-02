@@ -118,3 +118,27 @@ test('skills Claude can trigger never put arguments into a shell command', () =>
     }
   }
 });
+
+test('wd answered inline and the after-turn card carry no terminal escape sequences', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'wd-esc-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'wd-escp-'));
+  const E = '\x1b]52;c;ZXZpbA==\x07\x1b[2J';
+  const t = Date.now();
+  fs.mkdirSync(path.join(home, 'sessions'));
+  fs.writeFileSync(path.join(home, 'sessions', 'e.jsonl'), [
+    { t, ev: 'start', cwd }, { t: t + 1, ev: 'prompt', cwd, text: `fix ${E}it` },
+    { t: t + 2, ev: 'tool', tool: 'Bash', kind: 'run', target: `echo ${E}`, ok: false },
+    { t: t + 3, ev: 'tool', tool: 'Read', kind: 'read', target: `src/${E}a.js` },
+  ].map((e) => JSON.stringify(e)).join('\n') + '\n');
+  const hook = (h) => spawnSync(process.execPath, [path.join(ROOT, 'scripts/record.mjs')], {
+    input: JSON.stringify({ session_id: 'e', cwd, ...h }),
+    env: { ...process.env, WHATDID_HOME: home, WHATDID_PANE: '0', WHATDID_NOTIFY: '0' },
+    encoding: 'utf8',
+  }).stdout;
+  const reason = JSON.parse(hook({ hook_event_name: 'UserPromptSubmit', prompt: 'wd' })).reason;
+  assert.match(reason, /src\//);
+  assert.equal(reason.match(/[\x00-\x09\x0b-\x1f\x7f-\x9f]/), null);
+  const card = JSON.parse(hook({ hook_event_name: 'Stop' })).systemMessage;
+  assert.ok(card);
+  assert.equal(card.match(/[\x00-\x09\x0b-\x1f\x7f-\x9f]/), null);
+});
