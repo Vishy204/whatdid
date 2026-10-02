@@ -8,6 +8,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const HOME = process.env.WHATDID_HOME || path.join(os.homedir(), '.whatdid');
+// Claude Code sets COLUMNS to the terminal width before running a statusline.
+const COLS = Math.max(40, (Number(process.env.COLUMNS) || 120) - 2);
 const DIM = '\x1b[2m', RESET = '\x1b[0m', CYAN = '\x1b[36m', RED = '\x1b[31m', BOLD = '\x1b[1m';
 
 // Claude's narration types (see output-styles/whatdid.md), with a colour each.
@@ -69,7 +71,7 @@ const short = (s, n = 36) => {
 function ours(input) {
   const id = String(input.session_id || '').replace(/[^A-Za-z0-9_-]/g, '_');
   const file = path.join(HOME, 'sessions', `${id}.jsonl`);
-  if (!id || !fs.existsSync(file)) return `${CYAN}◆ what did${RESET}${DIM} · type wd to explain${RESET}`;
+  if (!id || !fs.existsSync(file)) return [`${CYAN}◆ what did${RESET}${DIM} · type wd to explain${RESET}`];
   const ev = tail(file);
   let i = ev.length - 1;
   while (i >= 0 && ev[i].ev !== 'prompt') i--;
@@ -85,23 +87,43 @@ function ours(input) {
   let note = null;
   try { note = latestNote(input.transcript_path, since); } catch {}
   const parts = [];
-  if (note) {
-    const [glyph, color] = NOTES[note.type];
-    const t = clean(note.text);
-    const text = t.length > 48 ? t.slice(0, 47) + '…' : t;
-    parts.push(`${color}${glyph} ${BOLD}${note.type}${RESET} ${text}`);
-  } else parts.push(`${CYAN}◆${RESET}`);
   if (done) {
     parts.push(tools.length ? `done · ${tools.length} steps` : 'idle');
   } else {
     const cur = [...turn].reverse().find((e) => e.ev === 'pre' || e.ev === 'tool');
     parts.push(`step ${tools.length + 1}`);
-    if (cur) parts.push(`${VERB[cur.kind] || 'using'} ${short(cur.why || cur.target || cur.detail || cur.tool)}`);
+    if (cur) parts.push(`${VERB[cur.kind] || 'using'} ${short(cur.why || cur.target || cur.detail || cur.tool, Math.max(36, COLS - 60))}`);
   }
   if (changed.size) parts.push(`${changed.size} file${changed.size > 1 ? 's' : ''} changed`);
   if (fails) parts.push(`${RED}${fails} failed${RESET}`);
   parts.push(`${DIM}wd explains${RESET}`);
-  return parts.join(`${DIM} · ${RESET}`);
+  const status = parts.join(`${DIM} · ${RESET}`);
+  if (!note) return [`${CYAN}◆${RESET}${DIM} · ${RESET}${status}`];
+
+  // Claude's note in full: on the same row when it fits, else on rows of its own above the status.
+  const [glyph, color] = NOTES[note.type];
+  const head = `${color}${glyph} ${BOLD}${note.type}${RESET} `;
+  const text = clean(note.text).replace(/\s+/g, ' ').trim();
+  const headLen = note.type.length + 3;
+  if (headLen + text.length + 3 + visible(status) <= COLS) return [`${head}${text}${DIM} · ${RESET}${status}`];
+  return [...wrapText(text, COLS - headLen, 3).map((l, k) => (k ? ' '.repeat(headLen) : head) + l), status];
+}
+
+const visible = (s) => s.replace(/\x1b\[[0-9;]*m/g, '').length;
+
+// Splits text into at most `max` rows of `width` characters at spaces; the last row ends in … if text is left over.
+function wrapText(text, width, max) {
+  const rows = [];
+  let rest = text;
+  while (rest && rows.length < max) {
+    if (rest.length <= width) { rows.push(rest); rest = ''; break; }
+    let cut = rest.lastIndexOf(' ', width);
+    if (cut < width / 2) cut = width;
+    rows.push(rest.slice(0, cut).trimEnd());
+    rest = rest.slice(cut).trimStart();
+  }
+  if (rest) rows[rows.length - 1] = rows[rows.length - 1].slice(0, width - 1).trimEnd() + '…';
+  return rows;
 }
 
 function wrapped(raw) {
@@ -109,14 +131,15 @@ function wrapped(raw) {
   try { cfg = JSON.parse(fs.readFileSync(path.join(HOME, 'config.json'), 'utf8')); } catch {}
   if (!cfg.wrap) return '';
   const r = spawnSync(cfg.wrap, { input: raw, shell: true, encoding: 'utf8', timeout: 2000, windowsHide: true });
-  return (r.stdout || '').trim().split('\n')[0];
+  return (r.stdout || '').replace(/\s+$/, '');
 }
 
 let raw = '';
 try { raw = fs.readFileSync(0, 'utf8'); } catch {}
 let input = {};
 try { input = JSON.parse(raw); } catch {}
-let line;
-try { line = ours(input); } catch { line = `${CYAN}◆ what did${RESET}`; }
+let lines;
+try { lines = ours(input); } catch { lines = [`${CYAN}◆ what did${RESET}`]; }
+// The previous statusline keeps its own rows; what did goes on the rows below, so neither gets cut off.
 const prev = wrapped(raw);
-process.stdout.write(prev ? `${prev}${DIM} │ ${RESET}${line}` : line);
+process.stdout.write([prev, ...lines].filter(Boolean).join('\n'));

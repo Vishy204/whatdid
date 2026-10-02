@@ -2,6 +2,11 @@
 
 > The project was renamed from glassbox to **what did** (package and command: `whatdid`) before its first release. "Glassbox" is an existing session-replay company and is used by 600+ GitHub repos. The trigger is now `wd`.
 
+## 0.1.11 — 2026-10-02
+
+### Fixed
+- **The statusline no longer cuts text off with “…”.** Claude's note is shown in full, wrapping onto a second row on narrow terminals, and sized to the real terminal width. An existing statusline (such as GSD's) keeps its own row above instead of sharing one line.
+
 ## 0.1.10 — 2026-10-02
 
 ### Fixed

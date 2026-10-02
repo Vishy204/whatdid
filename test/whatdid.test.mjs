@@ -107,7 +107,25 @@ test('statusline reports progress and wraps an existing statusline', () => {
     input: JSON.stringify({ session_id: SID }), encoding: 'utf8', env: { ...process.env, WHATDID_HOME: TMP },
   });
   const plain = r.stdout.replace(/\x1b\[[0-9;]*m/g, '');
-  assert.match(plain, /^GSD │ ◆ · done · 6 steps · 1 file changed · 1 failed · wd explains$/);
+  assert.equal(plain, 'GSD\n◆ · done · 6 steps · 1 file changed · 1 failed · wd explains', 'the old statusline keeps its own row');
+});
+
+test('statusline shows Claude\'s whole note, wrapped to the terminal width instead of cut off', () => {
+  fs.rmSync(path.join(TMP, 'config.json'), { force: true });
+  const note = 'expiresAt is stored in seconds but compared against Date.now() in milliseconds, so every session looks expired';
+  const transcript = path.join(TMP, 'note-transcript.jsonl');
+  fs.writeFileSync(transcript, JSON.stringify({ type: 'assistant', timestamp: new Date().toISOString(), message: { content: [{ type: 'text', text: `◇ found: ${note}` }] } }) + '\n');
+  const run = (cols) => spawnSync(process.execPath, [path.join(ROOT, 'scripts/statusline.mjs')], {
+    input: JSON.stringify({ session_id: SID, transcript_path: transcript }), encoding: 'utf8', env: { ...process.env, WHATDID_HOME: TMP, COLUMNS: String(cols) },
+  }).stdout.replace(/\x1b\[[0-9;]*m/g, '');
+  const wide = run(300);
+  assert.equal(wide.split('\n').length, 1);
+  assert.ok(wide.includes(note), wide);
+  const narrow = run(80).split('\n');
+  assert.ok(narrow.length >= 3, narrow.join('\n'));
+  for (const row of narrow) assert.ok(row.length <= 78, `fits 80 columns: ${row}`);
+  assert.equal(narrow.slice(0, -1).map((l) => l.replace(/^(◇ found )?\s*/, '')).join(' '), note, 'nothing is cut');
+  assert.match(narrow.at(-1), /^done · 6 steps/);
 });
 
 test('setup installs statusline, keeps the old one, and uninstall restores it', () => {
