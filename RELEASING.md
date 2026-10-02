@@ -22,12 +22,12 @@ Push to `main` and wait for CI to pass on Linux, macOS and Windows. The permissi
 ## 3. Publish
 
 ```bash
-git tag v0.1.8 && git push origin v0.1.8
-gh release create v0.1.8 --title "what did 0.1.8" --notes-file <(sed -n '/^## 0.1.8/,/^## 0.1.7/p' CHANGELOG.md | sed '$d')
+git tag v0.1.9 && git push origin v0.1.9
+gh release create v0.1.9 --title "what did 0.1.9" --notes-file <(sed -n '/^## 0.1.9/,/^## 0.1.8/p' CHANGELOG.md | sed '$d')
 npm publish                   # runs the tests first (prepublishOnly)
 ```
 
-Use the new version number in place of 0.1.8.
+Use the new version number in place of 0.1.9.
 
 ## 4. Verify from a clean setup
 

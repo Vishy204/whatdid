@@ -527,7 +527,14 @@ export function mapView(cwd, sub, opts = {}) {
         ...subs.slice(0, 40).map((s) => `  ${s}`), ...(subs.length > 40 ? [`  … +${subs.length - 40} more`] : [])].join('\n');
     }
   }
-  return renderMap(buildMap(dir), { budget: 2000, ...opts });
+  const map = buildMap(dir);
+  if (!map.files.length) {
+    const subs = subProjects(dir);
+    return [`# what did map: no code to map in ${path.basename(dir) || dir}`,
+      `This folder has no JavaScript, TypeScript, Python, Go, Rust or Java files: ${dir}`,
+      subs.length ? `Try the project inside it: wd map ${subs[0]}` : 'Open Claude Code in your project folder, or type wd map <folder>.'].join('\n');
+  }
+  return renderMap(map, { budget: 2000, ...opts });
 }
 
 export function renderMap(map, opts = {}) {
@@ -643,7 +650,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
     const ranks = Object.fromEntries([...map.ranks].sort((a, b) => b[1] - a[1]).map(([f, r]) => [f, +r.toFixed(5)]));
     console.log(JSON.stringify({ root: map.root, files: map.files, edges: map.edges, ranks, symbols: map.symbols, stats: map.stats }, null, 2));
   } else {
-    const text = renderMap(map, o);
+    const text = map.files.length ? renderMap(map, o) : mapView(o.root);
     console.log(text);
     if (o.stats) {
       const s = map.stats;

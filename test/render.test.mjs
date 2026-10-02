@@ -247,6 +247,13 @@ test('wd map in a folder of many projects lists them instead of mixing them', as
   assert.match(text, /^ {2}b\/c$/m);
   assert.match(mapView(root, 'a'), /# Repo map: a/);
   assert.match(mapView(root, 'nope'), /no folder "nope"/);
+  const notes = fs.mkdtempSync(path.join(os.tmpdir(), 'wd-notes-'));
+  fs.writeFileSync(path.join(notes, 'notes.md'), '# just notes');
+  assert.match(mapView(notes), /no code to map[\s\S]*Open Claude Code in your project folder/);
+  fs.mkdirSync(path.join(notes, 'app'));
+  fs.writeFileSync(path.join(notes, 'app', 'package.json'), '{}');
+  fs.writeFileSync(path.join(notes, 'app', 'i.js'), 'export const i = 1;');
+  assert.match(mapView(notes), /# Repo map/, 'one project inside is simply mapped');
 });
 
 test('health: tests passed or failing, failures fixed later, and what is still unresolved', async () => {

@@ -2,6 +2,11 @@
 
 > The project was renamed from glassbox to **what did** (package and command: `whatdid`) before its first release. "Glassbox" is an existing session-replay company and is used by 600+ GitHub repos. The trigger is now `wd`.
 
+## 0.1.9 — 2026-10-02
+
+### Fixed
+- `wd map` in a folder with no code (a notes folder, an empty temp folder) said "0 source files" above an empty map. It now says there is no code to map there, and suggests the project inside the folder or `wd map <folder>`.
+
 ## 0.1.8 — 2026-10-02
 
 ### Security
