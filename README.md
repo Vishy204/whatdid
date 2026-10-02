@@ -138,7 +138,7 @@ In Windows Terminal, tmux, WezTerm, iTerm2 and kitty (with `allow_remote_control
 <details>
 <summary><b>More: live statusline, HTML report, terminal command, settings</b></summary>
 
-- **Live statusline:** `/wd-setup` adds a line at the bottom of the terminal showing Claude's latest note as it works (`◇ found expiresAt is seconds… · step 6 · editing session.ts`). If you already have a statusline, such as GSD's, it keeps its own row on top. Long notes wrap onto a second row instead of being cut off.
+- **Live statusline:** `/wd-setup` adds a line at the bottom of the terminal showing Claude's latest note as it works (`◇ found expiresAt is in seconds, not milliseconds · step 6 · editing session.ts`). If you already have a statusline, such as GSD's, it keeps its own row on top. Long notes wrap onto a second row instead of being cut off.
 - **HTML report:** `wd html` writes one self-contained page. At the top, a list of every prompt, newest first, jumps straight to that turn. The three newest turns are open; click any older one to open it. Each turn has its health, a flowchart of every step and file (boxes show the full text, and hovering shows it too), the changed lines, the file tree and every note as a coloured badge. It runs no JavaScript and loads nothing from the network, so it works offline.
 
   <img src="assets/report.png" alt="what did HTML report with a flowchart of the steps" width="640">
