@@ -103,15 +103,25 @@ function styles(line) {
   return st;
 }
 
-const sgr = (s) => `\x1b[0;${s.bold ? '1;' : ''}38;2;${s.fg.join(';')}${s.bg ? `;48;2;${s.bg.join(';')}` : ''}m`;
+// macOS Terminal before macOS 26 has no 24-bit colour, so it gets the nearest of the 256 standard colours.
+export const trueColor = (env = process.env) => /truecolor|24bit/i.test(env.COLORTERM || '') || env.TERM_PROGRAM !== 'Apple_Terminal';
+export function to256([r, g, b]) {
+  if (Math.max(r, g, b) - Math.min(r, g, b) < 12) return r < 4 ? 16 : r > 246 ? 231 : 232 + Math.min(23, Math.max(0, Math.round((r - 8) / 10)));
+  const q = (v) => (v < 48 ? 0 : v < 115 ? 1 : Math.min(5, Math.round((v - 35) / 40)));
+  return 16 + 36 * q(r) + 6 * q(g) + q(b);
+}
+const sgr = (s, full) => {
+  const c = (n, rgb) => (full ? `${n};2;${rgb.join(';')}` : `${n};5;${to256(rgb)}`);
+  return `\x1b[0;${s.bold ? '1;' : ''}${c(38, s.fg)}${s.bg ? `;${c(48, s.bg)}` : ''}m`;
+};
 
-export function colorize(text) {
+export function colorize(text, full = trueColor()) {
   return stripControl(text).split('\n').map((line) => {
     if (!line) return line;
     const st = styles(line);
     let out = '', prev = '';
     for (let i = 0; i < line.length; i++) {
-      const code = sgr(st[i]);
+      const code = sgr(st[i], full);
       if (code !== prev) { out += code; prev = code; }
       // U+FE0E asks for the text form of ✔/✘, so Windows draws them in our colour instead of as purple emoji.
       out += line[i] + (line[i] === '✔' || line[i] === '✘' ? '︎' : '');

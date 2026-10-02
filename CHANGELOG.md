@@ -2,6 +2,13 @@
 
 > The project was renamed from glassbox to **what did** (package and command: `whatdid`) before its first release. "Glassbox" is an existing session-replay company and is used by 600+ GitHub repos. The trigger is now `wd`.
 
+## 0.1.10 — 2026-10-02
+
+### Fixed
+- **Colour on a Mac in any terminal.** In macOS Terminal, Ghostty, VS Code and Warp, `wd` printed one-colour text inside Claude Code because those terminals can't be split from outside. It now opens the colour view in a Terminal window. kitty gets a split pane (needs `allow_remote_control yes`).
+- macOS Terminal gets 256-colour codes: before macOS 26 it can't show 24-bit colour.
+- If macOS asks for permission to control Terminal or iTerm2, the view still opens once you click OK.
+
 ## 0.1.9 — 2026-10-02
 
 ### Fixed

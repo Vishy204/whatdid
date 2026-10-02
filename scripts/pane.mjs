@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Shows a wd view in colour, in a full-width pane below Claude Code.
 // Claude Code prints hook text in a single colour under "blocked by hook", so when the terminal can split
-// (Windows Terminal, tmux, WezTerm, iTerm2) the hook opens a pane running this script instead.
+// (Windows Terminal, tmux, WezTerm, iTerm2, kitty) the hook opens a pane running this script instead.
+// Other macOS terminals (Terminal, Ghostty, VS Code, Warp) can't be split from outside: a Terminal window opens.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -31,6 +32,13 @@ export function paneCommand(job, env = process.env, platform = process.platform,
     const line = run.map(shellQuote).join(' ').replace(/["\\]/g, '\\$&');
     return { cmd: 'osascript', args: ['-e', `tell application "iTerm2" to tell current session of current window to split horizontally with default profile command "${line}"`] };
   }
+  // Needs allow_remote_control in kitty.conf; without it the command fails and wd prints inline.
+  if (env.KITTY_WINDOW_ID) return { cmd: 'kitty', args: ['@', 'launch', '--location=hsplit', '--title', 'what did', ...run] };
+  if (platform === 'darwin') {
+    const line = `${run.map(shellQuote).join(' ')}; exit`.replace(/["\\]/g, '\\$&');
+    return { cmd: 'osascript', args: ['-e', 'tell application "Terminal"', '-e', `do script "${line}"`,
+      '-e', 'try', '-e', 'set bounds of front window to {60, 60, 1100, 760}', '-e', 'end try', '-e', 'activate', '-e', 'end tell'] };
+  }
   return null;
 }
 
@@ -46,7 +54,9 @@ export function openPane(view) {
   fs.writeFileSync(path.join(dir, 'latest'), path.basename(job));
   const r = spawnSync(c.cmd, c.args, { stdio: 'ignore', windowsHide: true, timeout: 5000 });
   if (r.status === 0) return true;
-  fs.rmSync(job, { force: true });
+  // A timeout is usually macOS asking to allow controlling Terminal or iTerm2: the pane may still open once
+  // the person clicks OK, so keep its job. wd prints inline this time either way.
+  if (r.error?.code !== 'ETIMEDOUT') fs.rmSync(job, { force: true });
   return false;
 }
 

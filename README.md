@@ -125,7 +125,7 @@ The menu may show the long name (`/whatdid:wd-map`); the short `/wd-map` does th
 
 ### The colour pane
 
-In Windows Terminal, tmux, WezTerm and iTerm2, `wd` opens in a full-width pane below Claude Code, in colour. Each section gets its own coloured heading, steps are coloured by kind (looked at, changed, ran), and added and removed lines are green and red. A new `wd` replaces the old pane. Other terminals show the same map inside Claude Code, and `/wd-setup pane off` does that everywhere.
+In Windows Terminal, tmux, WezTerm, iTerm2 and kitty (with `allow_remote_control yes`), `wd` opens in a full-width pane below Claude Code, in colour. On a Mac in Terminal, Ghostty, VS Code or Warp, which can't be split from outside, it opens in a Terminal window instead. Each section gets its own coloured heading, steps are coloured by kind (looked at, changed, ran), and added and removed lines are green and red. A new `wd` replaces the old pane. Other terminals (Linux and Windows terminals that can't split) show the same map inside Claude Code, and `/wd-setup pane off` does that everywhere.
 
 | Key | In the pane |
 |---|---|

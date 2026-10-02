@@ -225,6 +225,13 @@ test('wd opens a side pane only in terminals that can split, with the right comm
   assert.equal(paneCommand('j', { WEZTERM_PANE: '3' }, 'darwin', 'node').cmd, 'wezterm');
   assert.equal(paneCommand('j', { TERM_PROGRAM: 'iTerm.app' }, 'darwin', 'node').cmd, 'osascript');
   assert.equal(paneCommand('j', {}, 'linux', 'node'), null, 'plain terminals print inline');
+  assert.deepEqual(paneCommand('j', { KITTY_WINDOW_ID: '1' }, 'darwin', 'node').args.slice(0, 3), ['@', 'launch', '--location=hsplit']);
+  for (const tp of ['Apple_Terminal', 'ghostty', 'vscode', undefined]) {
+    const mac = paneCommand("it's.json", { TERM_PROGRAM: tp }, 'darwin', 'node');
+    assert.equal(mac.cmd, 'osascript', `${tp} on macOS opens a Terminal window`);
+    assert.ok(mac.args.includes('tell application "Terminal"'));
+    assert.match(mac.args.find((a) => a.startsWith('do script')), /^do script "node '?\S+pane\.mjs'? 'it'\\\\''s\.json'; exit"$/);
+  }
   assert.equal(paneCommand('j', { WT_SESSION: '1' }, 'linux', 'node'), null, 'WT_SESSION leaks into WSL; wt.exe is not there');
 });
 
@@ -320,4 +327,27 @@ test('html: a prompt list jumps to each turn, the newest three open, and box tex
   assert.ok(shown.replace(/\s/g, '').includes('file-name-component.ts'));
   assert.ok(!/…<\/text>/.test(svg));
   assert.match(svg, /<title>[^<]*file-name-component\.ts<\/title>/);
+});
+
+test('macOS Terminal gets 256 colours; everything else keeps 24-bit colour', async () => {
+  const { colorize, trueColor, to256 } = await import('../scripts/colorize.mjs');
+  assert.equal(trueColor({ TERM_PROGRAM: 'Apple_Terminal' }), false);
+  assert.equal(trueColor({ TERM_PROGRAM: 'Apple_Terminal', COLORTERM: 'truecolor' }), true);
+  assert.equal(trueColor({ TERM_PROGRAM: 'iTerm.app' }), true);
+  assert.deepEqual([to256([0, 0, 0]), to256([255, 255, 255]), to256([255, 0, 0]), to256([0, 0, 255])], [16, 231, 196, 21]);
+  for (const c of [[13, 17, 23], [125, 133, 144], [255, 107, 107], [90, 208, 122]]) assert.ok(to256(c) >= 16 && to256(c) <= 255, String(c));
+  const text = '# Repo map: x\n│ ✔ ok  src/a.js  +1 −2';
+  assert.doesNotMatch(colorize(text, false), /38;2;/);
+  assert.match(colorize(text, false), /38;5;\d+/);
+  assert.match(colorize(text, true), /38;2;/);
+});
+
+test('the macOS pane scripts compile (osacompile; macOS only)', { skip: process.platform !== 'darwin' }, async () => {
+  const { paneCommand } = await import('../scripts/pane.mjs');
+  for (const env of [{ TERM_PROGRAM: 'Apple_Terminal' }, { TERM_PROGRAM: 'iTerm.app' }]) {
+    const { args } = paneCommand("/tmp/it's job.json", env, 'darwin', '/usr/local/bin/node');
+    const out = path.join(os.tmpdir(), `wd-${Date.now()}.scpt`);
+    const r = spawnSync('osacompile', ['-o', out, ...args], { encoding: 'utf8' });
+    assert.equal(r.status, 0, `${env.TERM_PROGRAM}: ${r.stderr}`);
+  }
 });
